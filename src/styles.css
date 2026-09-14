@@ -1,0 +1,305 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant light (&:is(.light *));
+
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-cyan: var(--cyan);
+  --color-violet: var(--violet);
+  --color-emerald: var(--emerald);
+  --color-amber: var(--amber);
+  --color-pink: var(--pink);
+  --color-blue: var(--blue);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+}
+
+:root {
+  --radius: 0.875rem;
+
+  /* Dark theme by default — Isla look */
+  --background: #0A0A0A;
+  --foreground: oklch(0.98 0.005 260);
+  --card: #111111;
+  --card-foreground: oklch(0.98 0.005 260);
+  --popover: #111111;
+  --popover-foreground: oklch(0.98 0.005 260);
+  --primary: #00BFFF;
+  --primary-foreground: #FFFFFF;
+  --secondary: #1A1A1A;
+  --secondary-foreground: oklch(0.98 0.005 260);
+  --muted: #1A1A1A;
+  --muted-foreground: oklch(0.65 0.015 260);
+  --accent: #00BFFF;
+  --accent-foreground: #0A0A0A;
+  --destructive: oklch(0.65 0.22 27);
+  --destructive-foreground: oklch(0.98 0.005 260);
+  --border: #2C2C2C;
+  --input: #2C2C2C;
+  --ring: #00BFFF;
+
+  --cyan: #00BFFF;
+  --blue: #00BFFF;
+  --violet: oklch(0.65 0.22 290);
+  --emerald: #00BFFF;
+  --amber: oklch(0.80 0.16 70);
+  --pink: oklch(0.70 0.22 0);
+
+  /* ICP fit tiers — unified to Isla blue accent */
+  --icp-low: oklch(0.55 0.02 260);
+  --icp-medium: color-mix(in oklab, #00BFFF 55%, #2C2C2C);
+  --icp-high: #00BFFF;
+
+  /* Temperature — exact badge colors from uploaded image */
+  --icp-cold: #363E53;
+  --icp-warm: #564D3D;
+  --icp-hot: #8C181C;
+
+  /* Funnel steps */
+  --step-1: oklch(0.55 0.02 260);
+  --step-2: oklch(0.62 0.10 240);
+  --step-3: oklch(0.68 0.14 220);
+  --step-4: oklch(0.72 0.16 200);
+  --step-5: oklch(0.74 0.16 180);
+  --step-6: oklch(0.76 0.18 155);
+  --step-7: oklch(0.78 0.18 130);
+  --step-8: oklch(0.80 0.18 90);
+  --step-9: oklch(0.82 0.20 55);
+
+  /* Funnel aliases for Cross mini-funnel */
+  --funnel-1: var(--step-3);
+  --funnel-2: var(--step-5);
+  --funnel-3: var(--step-7);
+
+  /* Temperature variants */
+  --icp-hot-fg: #00BFFF;
+  --icp-hot-stroke: #2C2C2C;
+  --icp-warm-fg: #00BFFF;
+
+  /* Board surfaces */
+  --board-surface: #111111;
+  --board-surface-border: #2C2C2C;
+
+  /* Role colors — dark theme values (HSL) */
+  --icp-role-ceo: 262 75% 68%;
+  --icp-role-cto: 231 70% 70%;
+  --icp-role-cmo: 330 75% 68%;
+  --icp-role-cfo: 215 20% 62%;
+  --icp-role-coo: 195 65% 55%;
+  --icp-role-founder: 38 90% 62%;
+  --icp-role-vp-sales: 14 85% 65%;
+  --icp-role-vp-marketing: 320 75% 65%;
+  --icp-role-head-growth: 84 60% 58%;
+  --icp-role-head-product: 174 65% 55%;
+  --icp-role-head-people: 20 55% 62%;
+  --icp-role-developer: 189 80% 58%;
+  --icp-role-product-manager: 217 80% 68%;
+  --icp-role-designer: 280 65% 72%;
+  --icp-role-sales: 28 90% 65%;
+  --icp-role-marketing: 340 80% 75%;
+  --icp-role-growth: 152 65% 55%;
+  --icp-role-investor: 45 80% 60%;
+  --icp-role-recruiter: 75 45% 55%;
+  --icp-role-consultant: 200 25% 65%;
+
+  --sidebar: #0A0A0A;
+  --sidebar-foreground: oklch(0.92 0.005 260);
+  --sidebar-accent: #00BFFF;
+  --sidebar-accent-foreground: #0A0A0A;
+  --sidebar-border: #2C2C2C;
+
+  /* Glow utilities neutralized — all cards share the same fill/stroke */
+  --shadow-glow-emerald: none;
+  --shadow-glow-cyan: none;
+  --shadow-glow: none;
+  --shadow-glow-sm: none;
+  --shadow-card-hover: 0 12px 36px -14px oklch(0 0 0 / 0.55);
+}
+
+/* ============ Light mode ============ */
+.light {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(211 59% 7%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(211 59% 7%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(211 59% 7%);
+  --primary: hsl(197 89% 42%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(0 0% 100%);
+  --secondary-foreground: hsl(211 59% 12%);
+  --muted: hsl(0 0% 100%);
+  --muted-foreground: hsl(210 16% 32%);
+  --accent: hsl(0 0% 100%);
+  --accent-foreground: hsl(197 89% 30%);
+  --destructive: hsl(0 72% 51%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: #E6E6E6;
+  --input: #E6E6E6;
+  --ring: hsl(197 89% 42%);
+
+  --cyan: hsl(192 65% 55%);
+  --blue: hsl(195 100% 50%);
+  --violet: hsl(265 60% 55%);
+  --emerald: hsl(160 64% 40%);
+  --amber: hsl(38 92% 50%);
+  --pink: hsl(330 70% 50%);
+
+  --icp-low: hsl(25 84% 53%);
+  --icp-medium: hsl(32 90% 48%);
+  --icp-high: hsl(142 70% 38%);
+
+  --icp-cold: hsl(218 65% 92%);
+  --icp-warm: hsl(35 85% 88%);
+  --icp-hot: hsl(0 72% 90%);
+
+  --icp-hot-fg: hsl(0 68% 34%);
+  --icp-hot-stroke: hsl(0 74% 48%);
+  --icp-warm-fg: hsl(28 84% 32%);
+
+  --board-surface: hsl(0 0% 100%);
+  --board-surface-border: #E6E6E6;
+
+  --sidebar: hsl(0 0% 100%);
+  --sidebar-foreground: hsl(211 59% 12%);
+  --sidebar-accent: hsl(197 100% 96%);
+  --sidebar-accent-foreground: hsl(197 89% 30%);
+  --sidebar-border: #E6E6E6;
+
+  --shadow-card-hover: none;
+}
+
+/* Light mode: remove default shadows, unify borders to #E6E6E6 */
+.light *,
+.light *::before,
+.light *::after {
+  box-shadow: none !important;
+}
+.light {
+  --tw-shadow: 0 0 transparent;
+  --tw-ring-shadow: 0 0 transparent;
+}
+
+/* Light mode stays flat: no card shadows, plain white surface. */
+.light .card-soft {
+  background-color: #ffffff;
+}
+.light .surface-soft {
+  background-color: #fafafa;
+}
+
+
+/* View Transitions — smooth theme swap */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+
+@layer base {
+  html, body { background-color: var(--color-background); color: var(--color-foreground); }
+  * { border-color: var(--color-border); }
+
+  /* Minimalist scrollbars — track hidden, thin thumb only */
+  *::-webkit-scrollbar { width: 6px; height: 6px; background: transparent; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 0.15); border-radius: 999px; }
+  *::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 0.25); }
+  * { scrollbar-width: thin; scrollbar-color: oklch(1 0 0 / 0.15) transparent; }
+}
+
+@utility glow-emerald { box-shadow: var(--shadow-glow-emerald); }
+@utility glow-cyan { box-shadow: var(--shadow-glow-cyan); }
+@utility shadow-glow { box-shadow: var(--shadow-glow); }
+@utility shadow-glow-sm { box-shadow: var(--shadow-glow-sm); }
+@utility shadow-card { box-shadow: var(--shadow-card-hover); }
+@utility animate-cross-in { animation: cross-fade-in 0.18s ease-out both; }
+
+/* Subtle staggered rise for the idea feed cards (first open only). */
+@keyframes idea-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@utility animate-idea-rise {
+  animation: idea-rise 0.55s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-idea-rise { animation: none; }
+}
+
+/* Standardized hover stroke for clickable cards.
+   Dark mode: 1px blue inner stroke.
+   Light mode: 1px #CBC9C9 inner stroke. */
+@utility clickable-card {
+  &:hover {
+    outline: 1px solid #00BFFF;
+    outline-offset: -1px;
+  }
+
+  .light &:hover {
+    outline: 1px solid #CBC9C9;
+    outline-offset: -1px;
+  }
+}
+
+@utility clickable-card-row {
+  &:hover {
+    outline: 1px solid #00BFFF;
+    outline-offset: -1px;
+  }
+
+  .light &:hover {
+    outline: 1px solid #CBC9C9;
+    outline-offset: -1px;
+  }
+}
+
+@keyframes cross-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@utility font-jeju {
+  font-family: "Jeju Myeongjo", "Times New Roman", serif;
+}
+
+/* Create Content flow typography — Manrope everywhere except .font-jeju */
+@utility font-manrope {
+  font-family: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  & *:not(.font-jeju) {
+    font-family: inherit;
+  }
+}
