@@ -2987,7 +2987,6 @@ function DraftStage({
   const [comments, setComments] = useState<
     { id: string; author: string; text: string; createdAt: number }[]
   >([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   useEffect(() => {
@@ -3175,26 +3174,10 @@ function DraftStage({
               </motion.div>
             )}
           </div>
-        </div>
 
-          {/* Composer */}
-          <div className="shrink-0">
-            <div className="flex items-end gap-2 rounded-2xl border border-border bg-card px-3 py-2 shadow-sm transition focus-within:border-primary/50">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={onFilePick}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="mb-0.5 grid size-8 shrink-0 place-items-center rounded-[10px] text-muted-foreground transition hover:bg-white/10 hover:text-foreground light:hover:bg-black/5"
-                title="Attach image to post"
-              >
-                <ImageIcon className="size-4" />
-              </button>
+          {/* Ask Isla — pinned inside the card (never scrolls), text only */}
+          <div className="shrink-0 border-t border-border/60 p-3">
+            <div className="flex items-end gap-2 rounded-xl border border-border bg-background/60 px-3 py-1.5 transition focus-within:border-primary/50">
               <Textarea
                 value={refineInput}
                 onChange={(e) => {
@@ -3224,6 +3207,7 @@ function DraftStage({
               </Button>
             </div>
           </div>
+        </div>
         </div>
 
         {/* Right column: approve, comments, then Cancel / Save */}
