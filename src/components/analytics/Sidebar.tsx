@@ -22,6 +22,7 @@ import { useContentStore } from "@/lib/content-requests-store";
 import { WORKSPACE_EVENT, resolveWorkspace, type WorkspaceView } from "@/lib/workspace-store";
 import { CURRENT_USER } from "@/lib/current-user";
 import { ReferralCard } from "@/components/analytics/ReferralCard";
+import { SCENARIO_SKIP_BOOT_KEY } from "@/lib/scenario-boot";
 import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 
 
@@ -150,7 +151,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const selectScenario = (id: ScenarioId) => {
     setScenario(id);
     const route = applyScenario(id);
-    // Full reload keeps every simulated screen deterministic for the demo.
+    // Full reload keeps every simulated screen deterministic for the demo; the boot
+    // step must not reset the scenario the presenter just picked.
+    try {
+      sessionStorage.setItem(SCENARIO_SKIP_BOOT_KEY, "1");
+    } catch {
+      /* ignore */
+    }
     window.location.assign(route);
   };
   return (

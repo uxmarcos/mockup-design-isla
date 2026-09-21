@@ -1,11 +1,16 @@
 import { applyScenario } from "@/lib/scenario-store";
 
-// Every new browser session of the mockup starts in "Fully Set Up — Daily Use".
-// Runs at import time so pages read the daily state on their very first effect.
+/** Set right before the scenario switcher reloads the page, so that one reload keeps the chosen scenario. */
+export const SCENARIO_SKIP_BOOT_KEY = "isla.boot.skip";
+
+// Every time the mockup is opened (any full page load) it starts fully configured:
+// "Fully Set Up — Daily Use", with the daily missions on Home and the whole Kanban unlocked.
+// Runs at import time so pages read that state on their very first effect.
 if (typeof window !== "undefined") {
   try {
-    if (!sessionStorage.getItem("isla.boot.v1")) {
-      sessionStorage.setItem("isla.boot.v1", "1");
+    if (sessionStorage.getItem(SCENARIO_SKIP_BOOT_KEY)) {
+      sessionStorage.removeItem(SCENARIO_SKIP_BOOT_KEY);
+    } else {
       applyScenario("daily");
     }
   } catch {
