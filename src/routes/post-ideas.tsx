@@ -2976,20 +2976,11 @@ function DraftStage({
   const [draft, setDraft] = useState(initialContent ?? "");
   const [generating, setGenerating] = useState(!blank && !initialContent);
   const [refining, setRefining] = useState(false);
-  const [reviewOpen, setReviewOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [refineInput, setRefineInput] = useState("");
   const [scheduledAt, setScheduledAt] = useState<Date | null>(initialScheduledAt);
   const [approveAfterSchedule, setApproveAfterSchedule] = useState(false);
-  const [reviewRequested, setReviewRequested] = useState(false);
-  const [reviewerNotes, setReviewerNotes] = useState("");
-  const [reviewsRemaining, setReviewsRemaining] = useState(() => {
-    if (typeof window === "undefined") return 2;
-    const raw = window.localStorage.getItem("isla-review-credits");
-    const n = raw ? parseInt(raw, 10) : NaN;
-    return Number.isFinite(n) ? Math.max(0, Math.min(2, n)) : 2;
-  });
 
   const [image, setImage] = useState<string | null>(null);
   const [commentInput, setCommentInput] = useState("");
@@ -3268,16 +3259,6 @@ function DraftStage({
                   {comments.length}
                 </Badge>
               )}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setReviewOpen(true)}
-                disabled={generating || !draft || reviewRequested}
-                className="ml-auto gap-1.5"
-              >
-                <Users className="size-3.5" />
-                {reviewRequested ? "Review requested" : "Request review"}
-              </Button>
             </div>
 
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
@@ -3352,7 +3333,7 @@ function DraftStage({
             </Button>
             <Button
               size="sm"
-              onClick={() => onCreateAnother(draft, { reviewRequested, scheduledAt })}
+              onClick={() => onCreateAnother(draft, { scheduledAt })}
               disabled={generating || !draft}
               className="text-white [&_svg]:text-white"
             >
@@ -3363,24 +3344,6 @@ function DraftStage({
       </div>
 
 
-
-      <ReviewModal
-        open={reviewOpen}
-        onOpenChange={setReviewOpen}
-        remaining={reviewsRemaining}
-        onConfirm={() => {
-          if (reviewsRemaining <= 0) return;
-          const next = reviewsRemaining - 1;
-          setReviewsRemaining(next);
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem("isla-review-credits", String(next));
-          }
-          setReviewOpen(false);
-          setReviewRequested(true);
-          onCreateAnother(draft, { reviewRequested: true, scheduledAt });
-          toast.success("Review requested. A strategist will reply within 24h.");
-        }}
-      />
 
       <ScheduleModal
         open={scheduleOpen}
@@ -3459,96 +3422,6 @@ function mockRefine(prev: string, instruction: string, idea: Idea, hook: string)
   // free-form: just append a subtle marker
   return prev + `\n\n(edited: ${instruction})`;
 }
-
-/* ============================ REVIEW MODAL ============================ */
-
-function ReviewModal({
-  open,
-  onOpenChange,
-  onConfirm,
-  remaining,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  onConfirm: () => void;
-  remaining: number;
-}) {
-  const [note, setNote] = useState("");
-  const weeklyLimit = 2;
-  const noCredits = remaining <= 0;
-  const afterRemaining = Math.max(0, remaining - 1);
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Users className="size-4 text-primary" /> Request Human Review
-          </DialogTitle>
-          <DialogDescription>
-            Our content strategists will review this post and send suggestions within 24 hours.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="rounded-2xl border border-border bg-muted/40 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                Weekly review credits
-              </div>
-              <div className="text-2xl font-bold mt-0.5">
-                {remaining} <span className="text-muted-foreground font-medium">/ {weeklyLimit}</span>
-              </div>
-            </div>
-            <FileText className="size-8 text-primary/60" />
-          </div>
-          <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${(remaining / weeklyLimit) * 100}%` }}
-            />
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
-            {noCredits ? (
-              <>
-                You've used both weekly reviews. Credits reset next Monday.
-              </>
-            ) : (
-              <>
-                Confirming will consume <span className="font-medium text-foreground">1 credit</span>{" "}
-                — you'll have{" "}
-                <span className="font-medium text-foreground">
-                  {afterRemaining} of {weeklyLimit}
-                </span>{" "}
-                left this week.
-              </>
-            )}
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">
-            Anything specific to check? (optional)
-          </label>
-          <Input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="e.g. Is the hook strong enough?"
-          />
-        </div>
-
-        <DialogFooter className="gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={onConfirm} disabled={noCredits} className="rounded-full text-white [&_svg]:text-white">
-            {noCredits ? "No credits left" : "Use 1 credit & request"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 /* ============================ SCHEDULE MODAL ============================ */
 
