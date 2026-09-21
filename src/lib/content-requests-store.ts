@@ -112,12 +112,14 @@ export function addIdeaRequest(idea: { hook: string; pillar: string }, note?: st
 }
 
 /** Approving always requires a date — callers must pass one. */
-export function approveDraft(id: string, scheduledAt: Date) {
+export function approveDraft(id: string, scheduledAt: Date, body?: string) {
   const s = load();
   save({
     ...s,
     drafts: s.drafts.map((d) =>
-      d.id === id ? { ...d, status: "approved", scheduledAt: scheduledAt.toISOString() } : d,
+      d.id === id
+        ? { ...d, body: body ?? d.body, status: "approved", scheduledAt: scheduledAt.toISOString() }
+        : d,
     ),
   });
 }

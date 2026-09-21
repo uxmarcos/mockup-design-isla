@@ -18,6 +18,8 @@ import {
   ChevronDown,
   ChevronUp,
   Send,
+  ArrowUp,
+  CheckCircle2,
   Sparkles,
   RotateCcw,
   ArrowRight,
@@ -90,7 +92,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { IDEAS, FEED_IDEAS } from "@/lib/idea-data";
-import { addIdeaRequest } from "@/lib/content-requests-store";
+import { addIdeaRequest, approveDraft, useContentStore, type TeamDraft } from "@/lib/content-requests-store";
 
 const searchSchema = z.object({
   tab: z.enum(["ideas", "liked", "drafts", "schedule"]).optional(),
@@ -264,6 +266,10 @@ function PostIdeasPage() {
   // When set, the editor is editing an existing post instead of creating one.
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const [editingDraft, setEditingDraft] = useState<DraftRecord | null>(null);
+  const { drafts: teamDrafts } = useContentStore();
+  const teamDraft = editingDraft
+    ? (teamDrafts.find((t) => t.body === editingDraft.content) ?? null)
+    : null;
   const [drafts, setDrafts] = useState<DraftRecord[]>(() => {
     const at = (dayOffset: number, hour: number, minute: number) => {
       const d = new Date();
@@ -807,6 +813,15 @@ function PostIdeasPage() {
                   initialScheduledAt={
                     editingDraft?.scheduledAt ? new Date(editingDraft.scheduledAt) : null
                   }
+                  teamDraft={teamDraft}
+                  onApprove={(content, when) => {
+                    if (!teamDraft) return;
+                    approveDraft(teamDraft.id, when, content);
+                    toast.success(
+                      `Approved — scheduled for ${when.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${when.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
+                    );
+                    navigate({ to: "/approvals" });
+                  }}
                   onCreateAnother={(content, meta) => saveDraftAndBack(content, meta)}
                   onContinueRefining={() => {
                     /* stays on draft */
@@ -2936,6 +2951,8 @@ function DraftStage({
   hook,
   initialContent,
   initialScheduledAt = null,
+  teamDraft = null,
+  onApprove,
   onCreateAnother,
   onBack,
   collapsed,
@@ -2945,6 +2962,9 @@ function DraftStage({
   hook: string;
   initialContent?: string;
   initialScheduledAt?: Date | null;
+  /** The Isla-team draft behind this post, when it is waiting for the user's approval. */
+  teamDraft?: TeamDraft | null;
+  onApprove?: (content: string, when: Date) => void;
   onCreateAnother: (
     content: string,
     meta?: { reviewRequested?: boolean; scheduledAt?: Date | null },
@@ -2960,16 +2980,8 @@ function DraftStage({
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [refineInput, setRefineInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<
-    { id: string; role: "user" | "assistant"; text: string }[]
-  >([
-    {
-      id: "welcome",
-      role: "assistant",
-      text: "I'll help you shape this post. Try a preset below, or tell me what to change — shorter, add a story, more controversial, whatever fits.",
-    },
-  ]);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(initialScheduledAt);
+  const [approveAfterSchedule, setApproveAfterSchedule] = useState(false);
   const [reviewRequested, setReviewRequested] = useState(false);
   const [reviewerNotes, setReviewerNotes] = useState("");
   const [reviewsRemaining, setReviewsRemaining] = useState(() => {
@@ -2987,10 +2999,6 @@ function DraftStage({
   >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
-  const chatViewportRef = useRef<HTMLDivElement>(null);
-  const [pinned, setPinned] = useState(true);
-  const [hasUnseen, setHasUnseen] = useState(false);
 
   useEffect(() => {
     if (initialContent) {
@@ -3012,67 +3020,25 @@ function DraftStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-scroll chat viewport to bottom when pinned
-  useEffect(() => {
-    const el = chatViewportRef.current;
-    if (!el) return;
-    if (pinned) {
-      el.scrollTop = el.scrollHeight;
-      setHasUnseen(false);
-    } else {
-      setHasUnseen(true);
-    }
-  }, [chatMessages, pinned]);
-
-  function onChatScroll() {
-    const el = chatViewportRef.current;
-    if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
-    setPinned(nearBottom);
-    if (nearBottom) setHasUnseen(false);
-  }
-
-  function jumpToLatest() {
-    const el = chatViewportRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-    setPinned(true);
-    setHasUnseen(false);
-  }
-
-  function streamAssistant(fullText: string) {
-    const id = `a-${Date.now()}`;
-    setChatMessages((m) => [...m, { id, role: "assistant", text: "" }]);
-    let i = 0;
-    const tick = () => {
-      i += Math.max(2, Math.round(fullText.length / 80));
-      setChatMessages((m) =>
-        m.map((msg) =>
-          msg.id === id ? { ...msg, text: fullText.slice(0, i) } : msg,
-        ),
-      );
-      if (i < fullText.length) setTimeout(tick, 30);
-    };
-    setTimeout(tick, 120);
-  }
-
   function applyRefinement(instruction: string) {
     if (!instruction.trim() || refining) return;
-    const userMsg = {
-      id: `u-${Date.now()}`,
-      role: "user" as const,
-      text: instruction,
-    };
-    setChatMessages((m) => [...m, userMsg]);
     setRefineInput("");
     setRefining(true);
     setTimeout(() => {
       setDraft((prev) => mockRefine(prev, instruction, idea, hook));
       setRefining(false);
-      streamAssistant(
-        `Done. I've reshaped the draft around "${instruction}". Take a look on the left — keep going if you want another pass.`,
-      );
+      toast.success("Draft reshaped");
     }, 1000);
+  }
+
+  function handleApprove() {
+    if (!scheduledAt || scheduledAt.getTime() <= Date.now()) {
+      // A post can only be approved with a publishing date in the future.
+      setApproveAfterSchedule(true);
+      setScheduleOpen(true);
+      return;
+    }
+    onApprove?.(draft, scheduledAt);
   }
 
   function onFilePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -3089,9 +3055,10 @@ function DraftStage({
 
 
 
-      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr] flex-1 min-h-0">
-        {/* Editor */}
-        <div className="rounded-2xl bg-card border border-border overflow-hidden flex flex-col min-h-0">
+      <div className="grid gap-4 lg:grid-cols-[1fr_300px] flex-1 min-h-0">
+        {/* Left: editor + fixed "Ask Isla" composer, like a chat app */}
+        <div className="flex flex-col gap-3 min-h-0">
+        <div className="rounded-2xl bg-card border border-border overflow-hidden flex flex-col min-h-0 flex-1">
           <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/60 bg-background/40 shrink-0">
             <ToolbarBtn>
               <Heading1 className="size-3.5" />
@@ -3123,7 +3090,7 @@ function DraftStage({
                 >
                   <CalendarClock className="size-3.5" />
                   <span className="hidden sm:inline">
-                    {scheduledAt.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    {scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   </span>
                 </button>
                 <button
@@ -3210,9 +3177,71 @@ function DraftStage({
           </div>
         </div>
 
-        {/* Right column: Human Review + Refinement chat */}
-        <div className="flex flex-col gap-4 min-h-0">
-        {/* Human review card (compact) */}
+          {/* Composer */}
+          <div className="shrink-0">
+            <div className="flex items-end gap-2 rounded-2xl border border-border bg-card px-3 py-2 shadow-sm transition focus-within:border-primary/50">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onFilePick}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="mb-0.5 grid size-8 shrink-0 place-items-center rounded-[10px] text-muted-foreground transition hover:bg-white/10 hover:text-foreground light:hover:bg-black/5"
+                title="Attach image to post"
+              >
+                <ImageIcon className="size-4" />
+              </button>
+              <Textarea
+                value={refineInput}
+                onChange={(e) => {
+                  setRefineInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    applyRefinement(refineInput);
+                  }
+                }}
+                rows={1}
+                placeholder="Ask Isla to reshape the draft…"
+                disabled={refining || generating}
+                className="min-h-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[14px] shadow-none focus-visible:ring-0"
+              />
+              <Button
+                size="icon"
+                onClick={() => applyRefinement(refineInput)}
+                disabled={!refineInput.trim() || refining || generating}
+                className="mb-0.5 size-8 shrink-0 rounded-full text-white"
+                aria-label="Send"
+              >
+                <ArrowUp className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right column: actions */}
+        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
+          <div className="flex items-center justify-end gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={onBack} disabled={generating}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onCreateAnother(draft, { reviewRequested, scheduledAt })}
+              disabled={generating || !draft}
+              className="text-white [&_svg]:text-white"
+            >
+              Save
+            </Button>
+          </div>
+
         <div className="rounded-2xl border border-border bg-card p-3 shrink-0">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
@@ -3224,7 +3253,7 @@ function DraftStage({
               size="sm"
               variant="outline"
               onClick={() => setCommentsOpen(true)}
-              className="rounded-[10px] gap-1.5 hover:bg-muted hover:text-foreground"
+              className="gap-1.5"
             >
               <MessageSquare className="size-4" />
               Comments
@@ -3241,7 +3270,7 @@ function DraftStage({
               size="sm"
               onClick={() => setReviewOpen(true)}
               disabled={generating || !draft || reviewRequested}
-              className="ml-auto flex-1 rounded-[10px] text-white [&_svg]:text-white"
+              className="ml-auto flex-1 text-white [&_svg]:text-white"
             >
               {reviewRequested ? "Review requested" : "Request review"}
             </Button>
@@ -3249,181 +3278,27 @@ function DraftStage({
 
         </div>
 
-
-        {/* Refinement chat */}
-        <div className="rounded-2xl bg-card border border-border flex flex-col min-h-0 flex-1 overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-border/60 shrink-0">
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-primary">
-              <img src={islaAiIcon} alt="Isla" className="size-3" /> Refinement chat
-            </div>
-
-          </div>
-
-
-          <div className="px-3 pt-2.5 pb-2 shrink-0">
-            <div className="flex flex-wrap gap-1.5">
-              {REFINEMENT_PRESETS.map((p) => (
-                <button
-                  key={p}
-                  disabled={refining || generating}
-                  onClick={() => applyRefinement(p)}
-                  className="text-[11px] px-2.5 py-1 rounded-full bg-muted hover:bg-muted/70 border border-border/60 disabled:opacity-50 transition"
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Chat viewport */}
-          <div className="relative flex-1 min-h-0">
-            <div
-              ref={chatViewportRef}
-              onScroll={onChatScroll}
-              role="log"
-              aria-relevant="additions"
-              className="absolute inset-0 overflow-y-auto px-3 py-2 space-y-2.5 scroll-smooth"
-            >
-              <AnimatePresence initial={false}>
-                {chatMessages.map((m) => (
-                  <motion.div
-                    key={m.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={
-                        m.role === "user"
-                          ? "max-w-[85%] rounded-2xl rounded-br-sm bg-muted px-3 py-1.5 text-[13px] leading-relaxed text-foreground"
-                          : "max-w-[85%] text-[13px] leading-relaxed text-foreground/90"
-                      }
-                    >
-                      {m.role === "assistant" && (
-                        <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-widest text-primary mb-0.5">
-                          <img src={islaAiIcon} alt="Isla" className="size-2.5" /> Isla
-                        </div>
-
-                      )}
-                      {m.text || (
-                        <span className="inline-flex gap-1 opacity-60">
-                          <span className="size-1.5 rounded-full bg-current animate-pulse" />
-                          <span
-                            className="size-1.5 rounded-full bg-current animate-pulse"
-                            style={{ animationDelay: "150ms" }}
-                          />
-                          <span
-                            className="size-1.5 rounded-full bg-current animate-pulse"
-                            style={{ animationDelay: "300ms" }}
-                          />
-                        </span>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              {refining && (
-                <div className="flex justify-start">
-                  <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                    <Loader2 className="size-3 animate-spin" /> Refining draft…
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Jump to latest */}
-            <AnimatePresence>
-              {!pinned && hasUnseen && (
-                <motion.button
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  onClick={jumpToLatest}
-                  className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full border border-border bg-background/95 backdrop-blur px-3 py-1 text-[11px] shadow-sm hover:bg-muted"
-                >
-                  <ArrowDown className="size-3" /> New message
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Composer */}
-          <div className="p-2.5 border-t border-border/60 shrink-0">
-            <div className="rounded-xl border border-border bg-background/60 focus-within:border-primary/50 transition">
-              <Textarea
-                value={refineInput}
-                onChange={(e) => setRefineInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    applyRefinement(refineInput);
-                  }
-                }}
-                rows={2}
-                placeholder="Ask Isla to reshape the draft…"
-                disabled={refining || generating}
-                className="resize-none border-0 bg-transparent focus-visible:ring-0 text-[13px] min-h-0 py-2"
-              />
-              <div className="flex items-center gap-1 px-1.5 pb-1.5">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={onFilePick}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="size-7 grid place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition"
-                  title="Attach image to post"
-                >
-                  <ImageIcon className="size-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScheduleOpen(true)}
-                  className={`size-7 grid place-items-center rounded-lg transition ${scheduledAt ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-                  title="Schedule post"
-                >
-                  <CalendarClock className="size-3.5" />
-                </button>
-                <div className="ml-auto">
-                  <Button
-                    size="icon"
-                    onClick={() => applyRefinement(refineInput)}
-                    disabled={!refineInput.trim() || refining || generating}
-                    className="size-7"
-                  >
-                    <Send className="size-3.5" />
-                  </Button>
-                </div>
+          {teamDraft?.status === "awaiting" && (
+            <div className="rounded-2xl border border-violet/40 bg-violet/5 p-3 shrink-0">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                <CheckCircle2 className="size-4 text-violet" /> Approve this post
               </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Prepared by {teamDraft.preparedBy}. A post needs a publishing date to be approved.
+              </p>
+              <Button
+                size="sm"
+                onClick={handleApprove}
+                disabled={generating || !draft}
+                className="mt-3 w-full text-white"
+              >
+                {scheduledAt && scheduledAt.getTime() > Date.now()
+                  ? `Approve · ${scheduledAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${scheduledAt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`
+                  : "Approve"}
+              </Button>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Bottom actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onBack}
-            disabled={generating}
-            className="rounded-[10px] hover:bg-muted hover:text-foreground"
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => onCreateAnother(draft, { reviewRequested, scheduledAt })}
-            disabled={generating || !draft}
-            className="rounded-[10px] text-white [&_svg]:text-white"
-          >
-            Save
-          </Button>
-        </div>
         </div>
       </div>
 
@@ -3449,13 +3324,21 @@ function DraftStage({
 
       <ScheduleModal
         open={scheduleOpen}
-        onOpenChange={setScheduleOpen}
+        onOpenChange={(v) => {
+          setScheduleOpen(v);
+          if (!v) setApproveAfterSchedule(false);
+        }}
         value={scheduledAt}
         onSave={(d) => {
           setScheduledAt(d);
           setScheduleOpen(false);
+          if (approveAfterSchedule) {
+            setApproveAfterSchedule(false);
+            onApprove?.(draft, d);
+            return;
+          }
           toast.success(
-            `Scheduled for ${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`,
+            `Scheduled for ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
           );
         }}
       />
@@ -3889,7 +3772,7 @@ function LinkedInPreviewModal({
                     {scheduledAt ? (
                       <>
                         Scheduled ·{" "}
-                        {scheduledAt.toLocaleDateString(undefined, {
+                        {scheduledAt.toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                         })}{" "}
