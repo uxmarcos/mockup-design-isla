@@ -257,3 +257,46 @@ Saying no isn't a lack of ambition. It's the most ambitious thing a roadmap can 
 What's the last thing you cut that you never missed?`,
   },
 ];
+
+export type HistoryLine = { id: string; role: "user" | "team"; text: string; at: string };
+
+const CONVERSATIONS: { role: "user" | "team"; text: string }[][] = [
+  [
+    { role: "user", text: "Can we open with the result instead of the story? The number should hit in the first line." },
+    { role: "team", text: "Done. I moved the result to the opening line and kept the story as the second beat. New version is up for approval." },
+    { role: "user", text: "Better. The middle section is a bit long though, can you trim it?" },
+    { role: "team", text: "Trimmed by about a third and split it into shorter paragraphs. Easier to skim on mobile now." },
+    { role: "user", text: "Looks good. Approving it for the date we agreed on." },
+    { role: "team", text: "Perfect, it's scheduled. We'll publish it automatically on that day." },
+  ],
+  [
+    { role: "user", text: "I like the angle, but the ending feels generic. Can the closing question be more specific to our buyers?" },
+    { role: "team", text: "Good call. I rewrote the last line to ask about their own pipeline reviews instead of a generic 'what do you think?'." },
+    { role: "user", text: "That works. Can we also swap the image for something less staged?" },
+    { role: "team", text: "Swapped it for a real working-session photo. Let us know if you'd rather use one of your own." },
+    { role: "user", text: "All good now, approving." },
+    { role: "team", text: "Thanks! Scheduled and ready to go." },
+  ],
+  [
+    { role: "user", text: "The tone is a little formal for me. Can you make it sound more like how I'd say it out loud?" },
+    { role: "team", text: "Rewritten with shorter sentences and your usual phrasing from the last call. Take a look." },
+    { role: "user", text: "Much closer. One number in the third paragraph looks off, can you double check it?" },
+    { role: "team", text: "You're right, it was from an older report. Updated to the current figure and added the source in our notes." },
+    { role: "user", text: "Great, that's it. Approving." },
+    { role: "team", text: "Approved and scheduled. We'll keep an eye on the first hour of comments for you." },
+  ],
+];
+
+/** A short back-and-forth with the Isla team that ended in the approval of an already scheduled post. */
+export function conversationFor(seed: string): HistoryLine[] {
+  let h = 0;
+  for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const lines = CONVERSATIONS[h % CONVERSATIONS.length]!;
+  const start = Date.now() - (4 + (h % 3)) * 86400000;
+  return lines.map((l, i) => ({
+    id: `hist-${h}-${i}`,
+    role: l.role,
+    text: l.text,
+    at: new Date(start + i * (i % 2 === 0 ? 3 : 5) * 3600000 + Math.floor(i / 2) * 20 * 3600000).toISOString(),
+  }));
+}

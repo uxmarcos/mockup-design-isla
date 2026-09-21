@@ -20,6 +20,7 @@ import {
   Send,
   ArrowUp,
   CheckCircle2,
+  CircleDashed,
   Sparkles,
   RotateCcw,
   ArrowRight,
@@ -71,6 +72,8 @@ import { Sidebar, useSidebarState } from "@/components/analytics/Sidebar";
 import { Button } from "@/components/ui/button";
 import { BackButton } from "@/components/ui/back-button";
 import { HubBreadcrumb } from "@/components/content/HubBreadcrumb";
+import { ChangeRequestChat, type ChatLine } from "@/components/ChangeRequestChat";
+import { conversationFor } from "@/lib/post-samples";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
@@ -95,6 +98,8 @@ import { IDEAS, FEED_IDEAS } from "@/lib/idea-data";
 import {
   addIdeaRequest,
   approveDraft,
+  deleteChangeRequest,
+  sendChangeRequest,
   updateTeamDraft,
   useContentStore,
   type TeamDraft,
@@ -281,6 +286,11 @@ function PostIdeasPage() {
     : null;
   // Posts opened from Calendar or Approvals go back to where they came from.
   const originPath = fromParam === "calendar" ? "/calendar" : "/approvals";
+  // Approved / scheduled posts already went through the conversation with the team.
+  const approvedHistory: ChatLine[] | undefined =
+    fromParam === "calendar" || teamDraft?.status === "approved"
+      ? conversationFor(editingDraft?.content ?? "")
+      : undefined;
   const [drafts, setDrafts] = useState<DraftRecord[]>(() => {
     const at = (dayOffset: number, hour: number, minute: number) => {
       const d = new Date();
@@ -832,7 +842,12 @@ function PostIdeasPage() {
                     editingDraft?.scheduledAt ? new Date(editingDraft.scheduledAt) : null
                   }
                   initialImage={imgParam ?? null}
+                  history={approvedHistory}
                   teamDraft={teamDraft}
+                  onSendRequest={teamDraft ? (text) => sendChangeRequest(teamDraft.id, text) : undefined}
+                  onDeleteRequest={
+                    teamDraft ? (id) => deleteChangeRequest(teamDraft.id, id) : undefined
+                  }
                   onApprove={(_content, when, image) => {
                     if (!teamDraft) return;
                     approveDraft(teamDraft.id, when, image);
@@ -1619,7 +1634,7 @@ function LifecycleBadge({ stage }: { stage: string }) {
         : stage === "Refined"
           ? "bg-primary/15 text-primary border-primary/30"
           : stage === "Draft"
-            ? "bg-[#FFD667]/15 text-[#FFD667] border-[#FFD667]/30"
+            ? "bg-[#FFD667]/15 text-[#FFD667] border-[#FFD667]/30 light:bg-[#B7791F]/15 light:text-[#7A5200] light:border-[#B7791F]/35"
             : "bg-[#00BFFF]/15 text-[#00BFFF] border-[#00BFFF]/30";
   return (
     <span
@@ -2983,7 +2998,10 @@ function DraftStage({
   initialContent,
   initialScheduledAt = null,
   initialImage = null,
+  history,
   teamDraft = null,
+  onSendRequest,
+  onDeleteRequest,
   onApprove,
   onCreateAnother,
   onBack,
@@ -2996,7 +3014,12 @@ function DraftStage({
   initialScheduledAt?: Date | null;
   /** The Isla-team draft behind this post, when it is waiting for the user's approval. */
   teamDraft?: TeamDraft | null;
+  /** Change-request messages are saved on the post for the Isla team; several are allowed. */
+  onSendRequest?: (text: string) => void;
+  onDeleteRequest?: (id: string) => void;
   initialImage?: string | null;
+  /** Conversation that led to the approval of a post that is already scheduled (read-only). */
+  history?: ChatLine[];
   onApprove?: (content: string, when: Date, image: string | null) => void;
   onCreateAnother: (
     content: string,
@@ -3014,12 +3037,21 @@ function DraftStage({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(initialScheduledAt);
   const [approveAfterSchedule, setApproveAfterSchedule] = useState(false);
+  const [localThread, setLocalThread] = useState<ChatLine[]>([]);
+  const chatLines: ChatLine[] = teamDraft ? (teamDraft.thread ?? []) : localThread;
+  const sendRequest = (text: string) => {
+    if (onSendRequest) return onSendRequest(text);
+    setLocalThread((t) => [
+      ...t,
+      { id: `l-${Date.now()}`, role: "user", text, at: new Date().toISOString() },
+    ]);
+  };
+  const deleteRequest = (id: string) => {
+    if (onDeleteRequest) return onDeleteRequest(id);
+    setLocalThread((t) => t.filter((m) => m.id !== id));
+  };
 
   const [image, setImage] = useState<string | null>(initialImage);
-  const [commentInput, setCommentInput] = useState("");
-  const [comments, setComments] = useState<
-    { id: string; author: string; text: string; createdAt: number }[]
-  >([]);
 
 
   useEffect(() => {
@@ -3041,16 +3073,6 @@ function DraftStage({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function addComment() {
-    const text = commentInput.trim();
-    if (!text) return;
-    setComments((cs) => [
-      ...cs,
-      { id: `c-${Date.now()}`, author: "You", text, createdAt: Date.now() },
-    ]);
-    setCommentInput("");
-  }
 
   function handleApprove() {
     if (!scheduledAt || scheduledAt.getTime() <= Date.now()) {
@@ -3227,86 +3249,51 @@ function DraftStage({
             </div>
           )}
 
-          {/* Comments */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2.5">
-              <MessageSquare className="size-4 text-primary" />
-              <span className="text-[13px] font-semibold text-foreground">Comments</span>
-              {comments.length > 0 && (
-                <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">
-                  {comments.length}
-                </Badge>
-              )}
-            </div>
-
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
-              {comments.length === 0 ? (
-                <div className="grid h-full place-items-center py-8 text-center">
-                  <div>
-                    <MessageSquare className="mx-auto size-7 text-muted-foreground/50" />
-                    <div className="mt-2 text-sm font-medium">No comments yet</div>
-                    <p className="mx-auto mt-1 max-w-[220px] text-xs text-muted-foreground">
-                      Leave a note for whoever reviews this draft.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                comments.map((c) => (
-                  <div key={c.id} className="flex gap-2.5">
-                    <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
-                      {c.author
-                        .split(" ")
-                        .map((n) => n[0])
-                        .slice(0, 2)
-                        .join("")}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-[13px] font-semibold text-foreground">{c.author}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatRelative(c.createdAt)}
-                        </span>
-                      </div>
-                      <div className="mt-1 rounded-2xl rounded-tl-sm bg-muted px-3 py-2 text-[13px] leading-relaxed text-foreground">
-                        {c.text}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="shrink-0 border-t border-border/60 p-3">
-              <div className="rounded-xl border border-border bg-background/60 transition focus-within:border-primary/50">
-                <Textarea
-                  value={commentInput}
-                  onChange={(e) => setCommentInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      addComment();
-                    }
-                  }}
-                  rows={2}
-                  placeholder="Write a comment…"
-                  className="min-h-0 resize-none border-0 bg-transparent py-2 text-[13px] shadow-none focus-visible:ring-0"
-                />
-                <div className="flex items-center justify-end px-1.5 pb-1.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={addComment}
-                    disabled={!commentInput.trim()}
-                    aria-label="Send comment"
-                    title="Send comment"
-                    className="size-7 text-muted-foreground hover:text-foreground"
-                  >
-                    <Send className="size-3.5" />
-                  </Button>
-                </div>
+          {teamDraft?.status === "writing" && (
+            <div className="rounded-2xl border border-amber/40 bg-amber/5 p-3 shrink-0">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                <CircleDashed className="size-4 text-amber light:text-[#7A5200]" /> Being written by our team
               </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                You'll get the finished post in Approvals. Leave notes for the team below if you
+                want to add anything.
+              </p>
             </div>
-          </div>
+          )}
+
+          {teamDraft?.status === "changes" && (
+            <div className="rounded-2xl border border-amber/40 bg-amber/5 p-3 shrink-0">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                <CircleDashed className="size-4 text-amber light:text-[#7A5200]" /> Changes requested
+              </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Our team will read your messages and reply here. Delete all of your messages to go back to approving.
+              </p>
+            </div>
+          )}
+
+          {history ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2.5">
+                <MessageSquare className="size-4 text-primary" />
+                <span className="text-[13px] font-semibold text-foreground">Conversation</span>
+              </div>
+              <ChangeRequestChat key="history" messages={history} readOnly />
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+              <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2.5">
+                <MessageSquare className="size-4 text-primary" />
+                <span className="text-[13px] font-semibold text-foreground">Request changes</span>
+              </div>
+              <ChangeRequestChat
+                key={teamDraft?.id ?? "local"}
+                messages={chatLines}
+                onSend={sendRequest}
+                onDelete={deleteRequest}
+              />
+            </div>
+          )}
 
           <div className="flex shrink-0 items-center justify-end gap-2">
             <Button variant="outline" size="sm" onClick={onBack} disabled={generating}>

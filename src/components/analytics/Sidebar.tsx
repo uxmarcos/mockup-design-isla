@@ -329,7 +329,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     <NavLink key={sub.label} to={sub.to} className={subCls(currentPath === sub.to)}>
                       {sub.label}
                       {sub.to === "/approvals" && pendingApprovals > 0 && (
-                        <span className="ml-auto grid min-w-4 h-4 place-items-center rounded-full bg-[#FFD667]/15 px-1 text-[10px] font-semibold tabular-nums text-[#FFD667]">
+                        <span className="ml-auto grid min-w-4 h-4 place-items-center rounded-full bg-[#FFD667]/15 px-1 text-[10px] font-semibold tabular-nums text-[#FFD667] light:bg-[#B7791F]/15 light:text-[#7A5200]">
                           {pendingApprovals}
                         </span>
                       )}

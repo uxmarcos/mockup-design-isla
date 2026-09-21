@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   CalendarClock,
-  CheckCircle2,
+  Clock,
   CircleDashed,
   Globe,
   Lightbulb,
@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +24,6 @@ import { Sidebar, useSidebarState } from "@/components/analytics/Sidebar";
 import {
   approveDraft,
   draftTitle,
-  requestDraftChanges,
   useContentStore,
   type TeamDraft,
 } from "@/lib/content-requests-store";
@@ -62,7 +60,7 @@ function formatWhen(d: Date) {
 const sectionTitle =
   "flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground";
 const countBadge =
-  "inline-flex min-w-5 items-center justify-center rounded-full bg-[#FFD667]/15 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#FFD667]";
+  "inline-flex min-w-5 items-center justify-center rounded-full bg-[#FFD667]/15 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#FFD667] light:bg-[#B7791F]/15 light:text-[#7A5200]";
 
 
 const emptyBox =
@@ -73,7 +71,6 @@ function ApprovalsPage() {
   const navigate = useNavigate();
   const { requests, drafts } = useContentStore();
   const [approving, setApproving] = useState<TeamDraft | null>(null);
-  const [changing, setChanging] = useState<TeamDraft | null>(null);
 
   const awaiting = useMemo(() => drafts.filter((d) => d.status === "awaiting"), [drafts]);
   const approved = useMemo(
@@ -144,9 +141,18 @@ function ApprovalsPage() {
                   const suggested = futureSuggestion(dr);
                   const preview = dr.body.split("\n").filter((l) => l.trim())[1];
                   return (
-                    <li key={dr.id} className="rounded-[10px] border border-violet/40 bg-violet/5 p-4">
+                    <li
+                      key={dr.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openDraft(dr, dr.suggestedAt)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && e.target === e.currentTarget) openDraft(dr, dr.suggestedAt);
+                      }}
+                      className="cursor-pointer rounded-[10px] border border-violet/40 bg-violet/5 p-4 transition-colors hover:bg-violet/10"
+                    >
                       <div className="flex items-start gap-3">
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-violet" />
+                        <Clock className="mt-0.5 size-4 shrink-0 text-violet" />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium">{draftTitle(dr)}</p>
                           {preview && (
@@ -164,25 +170,21 @@ function ApprovalsPage() {
                         </div>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setChanging(dr)}>
-                          Request changes
+                        <Button
+                          size="sm"
+                          className="text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openDraft(dr, dr.suggestedAt);
+                          }}
+                        >
+                          Review
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openDraft(dr, dr.suggestedAt)}
-                        >
-                          Review
-                        </Button>
-                        {suggested && (
-                          <Button variant="outline" size="sm" onClick={() => setApproving(dr)}>
-                            Change date
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          className="text-white"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (suggested) {
                               approveDraft(dr.id, suggested);
                               toast.success(`Approved — scheduled for ${formatWhen(suggested)}`);
@@ -191,7 +193,7 @@ function ApprovalsPage() {
                             }
                           }}
                         >
-                          {suggested ? `Approve · ${formatWhen(suggested)}` : "Approve"}
+                          Approve
                         </Button>
                       </div>
                     </li>
@@ -214,23 +216,34 @@ function ApprovalsPage() {
               <ul className="space-y-2">
                 {requests.map((r) => {
                   const Icon = r.status === "changes" ? MessageSquareText : Lightbulb;
+                  const linked = r.draftId ? drafts.find((d) => d.id === r.draftId) : undefined;
                   return (
-                    <li
-                      key={r.id}
-                      className="flex items-center gap-3 rounded-[10px] border border-border/70 px-4 py-3"
-                    >
-                      <Icon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{r.hook}</span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          Sent {timeAgo(r.sentAt)}
-                          {r.note ? ` · “${r.note}”` : ""}
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (linked) {
+                            openDraft(
+                              linked,
+                              linked.status === "approved" ? (linked.scheduledAt ?? null) : linked.suggestedAt,
+                            );
+                          }
+                        }}
+                        className="clickable-card-row flex w-full items-center gap-3 rounded-[10px] border border-border/70 px-4 py-3 text-left"
+                      >
+                        <Icon className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">{r.hook}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            Sent {timeAgo(r.sentAt)}
+                            {r.note ? ` · “${r.note}”` : ""}
+                          </span>
                         </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-card px-2 py-0.5 text-[10px] font-semibold text-amber">
-                        <CircleDashed className="size-3" />
-                        {r.status === "changes" ? "Changes requested" : "In progress"}
-                      </span>
+                        <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-border/70 bg-card px-2 py-0.5 text-[10px] font-semibold text-amber light:bg-[#B7791F]/10 light:text-[#7A5200]">
+                          <CircleDashed className="size-3" />
+                          {r.status === "changes" ? "Changes requested" : "In progress"}
+                        </span>
+                      </button>
                     </li>
                   );
                 })}
@@ -274,7 +287,6 @@ function ApprovalsPage() {
       </main>
 
       <ApproveDialog draft={approving} onClose={() => setApproving(null)} />
-      <ChangesDialog draft={changing} onClose={() => setChanging(null)} />
     </div>
   );
 }
@@ -305,7 +317,7 @@ function ApproveDialog({ draft, onClose }: { draft: TeamDraft | null; onClose: (
     <Dialog open={!!draft} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{draft?.suggestedAt ? "Change date & approve" : "Pick a date to approve"}</DialogTitle>
+          <DialogTitle>Pick a date to approve</DialogTitle>
           <DialogDescription>
             A post can only be approved with a publishing date.
           </DialogDescription>
@@ -354,52 +366,6 @@ function ApproveDialog({ draft, onClose }: { draft: TeamDraft | null; onClose: (
             }}
           >
             Approve & schedule
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ChangesDialog({ draft, onClose }: { draft: TeamDraft | null; onClose: () => void }) {
-  const [note, setNote] = useState("");
-
-  useEffect(() => {
-    if (draft) setNote("");
-  }, [draft]);
-
-  return (
-    <Dialog open={!!draft} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Request changes</DialogTitle>
-          <DialogDescription>
-            Tell our team what to adjust. They'll send back a new version for your approval.
-          </DialogDescription>
-        </DialogHeader>
-        {draft && <p className="line-clamp-2 text-sm font-medium">{draftTitle(draft)}</p>}
-        <Textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={4}
-          maxLength={500}
-          placeholder="e.g. Make the opening shorter and add a real number."
-          className="resize-none"
-        />
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            className="text-white"
-            onClick={() => {
-              if (!draft) return;
-              requestDraftChanges(draft.id, note);
-              toast.success("Sent back to the Isla team");
-              onClose();
-            }}
-          >
-            Send to team
           </Button>
         </DialogFooter>
       </DialogContent>

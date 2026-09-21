@@ -336,7 +336,7 @@ function PostContent({ post }: { post: PostItem }) {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[15px] font-semibold text-card-foreground">{post.author}</span>
                 {post.source === "Pipeline" ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-1 text-[12px] font-medium leading-none text-amber-300">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-1 text-[12px] font-medium leading-none text-amber-300 light:bg-[#B7791F]/15 light:text-[#7A5200]">
                     <Flame className="size-3.5" />
                     Warm up
                   </span>
@@ -368,7 +368,7 @@ function PostContent({ post }: { post: PostItem }) {
       </div>
 
       {post.source === "Pipeline" && (
-        <div className="mt-4 rounded-xl bg-amber-400/10 px-4 py-2.5 text-[14px] text-amber-300">
+        <div className="mt-4 rounded-xl bg-amber-400/10 px-4 py-2.5 text-[14px] text-amber-300 light:bg-[#B7791F]/12 light:text-[#7A5200]">
           Engaging lead — comment to warm them up. This is a possible reach out.
         </div>
       )}

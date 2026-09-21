@@ -541,7 +541,7 @@ function PathOption({
         <span className="block text-xs text-muted-foreground">{description}</span>
       </span>
       {badge && (
-        <span className="shrink-0 rounded-full bg-[#FFD667]/15 px-2 py-0.5 text-[11px] font-semibold text-[#FFD667]">
+        <span className="shrink-0 rounded-full bg-[#FFD667]/15 px-2 py-0.5 text-[11px] font-semibold text-[#FFD667] light:bg-[#B7791F]/15 light:text-[#7A5200]">
           {badge}
         </span>
       )}
