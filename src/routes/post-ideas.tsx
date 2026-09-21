@@ -3293,12 +3293,15 @@ function DraftStage({
                 />
                 <div className="flex items-center justify-end px-1.5 pb-1.5">
                   <Button
-                    size="sm"
+                    variant="ghost"
+                    size="icon"
                     onClick={addComment}
                     disabled={!commentInput.trim()}
-                    className="h-7 text-white [&_svg]:text-white"
+                    aria-label="Send comment"
+                    title="Send comment"
+                    className="size-7 text-muted-foreground hover:text-foreground"
                   >
-                    <Send className="mr-1 size-3.5" /> Send
+                    <Send className="size-3.5" />
                   </Button>
                 </div>
               </div>
