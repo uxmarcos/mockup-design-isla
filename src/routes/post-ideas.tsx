@@ -4,6 +4,7 @@ import islaAiIcon from "@/assets/isla-ai-icon.svg";
 
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   motion,
   AnimatePresence,
@@ -679,10 +680,10 @@ function PostIdeasPage() {
       >
         <div className="max-w-6xl mx-auto px-6 pt-8 pb-5 sm:px-10 lg:px-14 lg:pt-12 lg:pb-12">
           {stage !== "call" && (
-            <HubBreadcrumb
-              {...breadcrumb}
-              className="mb-5"
-            />
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <HubBreadcrumb {...breadcrumb} className="min-w-0" />
+              <div id="draft-actions-slot" className="flex shrink-0 items-center gap-2" />
+            </div>
           )}
           <AnimatePresence mode="wait">
             {stage === "manager" && (
@@ -3037,6 +3038,10 @@ function DraftStage({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [scheduledAt, setScheduledAt] = useState<Date | null>(initialScheduledAt);
   const [approveAfterSchedule, setApproveAfterSchedule] = useState(false);
+  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setActionsSlot(document.getElementById("draft-actions-slot"));
+  }, []);
   const [localThread, setLocalThread] = useState<ChatLine[]>([]);
   const chatLines: ChatLine[] = teamDraft ? (teamDraft.thread ?? []) : localThread;
   const sendRequest = (text: string) => {
@@ -3094,7 +3099,7 @@ function DraftStage({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-9rem)] overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-12rem)] overflow-hidden">
 
 
 
@@ -3227,7 +3232,7 @@ function DraftStage({
         </div>
 
         {/* Right column: approve, comments, then Cancel / Save */}
-        <div className="flex flex-col gap-4 min-h-0 lg:pb-10">
+        <div className="flex flex-col gap-4 min-h-0">
           {teamDraft?.status === "awaiting" && (
             <div className="rounded-2xl border border-violet/40 bg-violet/5 p-3 shrink-0">
               <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
@@ -3295,9 +3300,14 @@ function DraftStage({
             </div>
           )}
 
-          <div className="flex shrink-0 items-center justify-end gap-2">
+        </div>
+      </div>
+
+      {actionsSlot &&
+        createPortal(
+          <>
             <Button variant="outline" size="sm" onClick={onBack} disabled={generating}>
-              Cancel
+              Discard changes
             </Button>
             <Button
               size="sm"
@@ -3307,11 +3317,9 @@ function DraftStage({
             >
               Save
             </Button>
-          </div>
-        </div>
-      </div>
-
-
+          </>,
+          actionsSlot,
+        )}
 
       <ScheduleModal
         open={scheduleOpen}
