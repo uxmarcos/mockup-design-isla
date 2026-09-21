@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Sidebar, useSidebarState } from "@/components/analytics/Sidebar";
 import { draftTitle, useContentStore } from "@/lib/content-requests-store";
+import { CALENDAR_SAMPLES } from "@/lib/post-samples";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/calendar")({
@@ -96,25 +97,30 @@ const STATUS: Record<
   },
 };
 
-const LEGEND: Status[] = ["isla-review", "your-review", "ready", "posted", "missed"];
+// The calendar only holds posts the user already approved.
+const LEGEND: Status[] = ["ready", "posted", "missed"];
 
-type Post = { id: string; time: string; title: string; status: Status; thumb?: boolean };
+type Post = {
+  id: string;
+  time: string;
+  title: string;
+  status: Status;
+  image?: string;
+  body?: string;
+};
 
-/** Post templates used to fill every week with content. */
-const TEMPLATES: { title: string; time: string; thumb?: boolean }[] = [
-  { title: "The ICP mistake most B2B teams keep repeating", time: "08:30" },
-  { title: "3 lessons from 100 demos", time: "10:00", thumb: true },
-  { title: "Why most outbound fails (and what we do instead)", time: "11:30" },
-  { title: "Our pipeline teardown: numbers, not vibes", time: "15:00", thumb: true },
-  { title: "Hiring for GTM without burning 6 months", time: "16:00" },
-  { title: "How we cut time-to-first-value from 21 days to 4", time: "09:00" },
-  { title: "Content-led pipeline: what actually compounds", time: "13:00", thumb: true },
-];
+/** Post templates used to fill every week with content (full-length sample posts). */
+const TEMPLATES = CALENDAR_SAMPLES.map((p) => ({
+  time: p.time,
+  image: p.image,
+  body: p.body,
+  title: p.body.split("\n")[0]!.replace(/\.$/, ""),
+}));
 
 /** Weekdays that always carry a post — guarantees 4+ posts per week. */
 const POST_DAYS = [1, 2, 4, 5];
 
-const FUTURE_STATUS: Status[] = ["ready", "isla-review", "your-review", "ready"];
+const FUTURE_STATUS: Status[] = ["ready"];
 
 function dayKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
@@ -145,7 +151,8 @@ function postsFor(d: Date, today: Date): Post[] {
       time: i === 0 ? base.time : t.time,
       title: t.title,
       status,
-      thumb: t.thumb,
+      image: t.image,
+      body: t.body,
     };
   });
 }
@@ -183,8 +190,8 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
         <Icon className={cn("size-3", s.color)} />
       </div>
       <div className="mt-1 flex items-start gap-1.5">
-        {post.thumb && (
-          <span className="mt-0.5 size-7 shrink-0 rounded-[3px] bg-gradient-to-br from-primary/40 to-violet/40" />
+        {post.image && (
+          <img src={post.image} alt="" className="mt-0.5 size-7 shrink-0 rounded-[3px] object-cover" />
         )}
         <span className="line-clamp-2 text-[10.5px] leading-snug text-foreground/90">
           {post.title}
@@ -211,13 +218,11 @@ function CalendarPage() {
   const { drafts } = useContentStore();
   const awaiting = useMemo(() => drafts.filter((d) => d.status === "awaiting"), [drafts]);
 
-  /** Mock schedule plus the team's drafts: awaiting ones on their suggested day, approved ones on their scheduled day. */
+  /** Mock schedule plus the drafts the user approved — nothing that still needs approval shows up here. */
   const dayPosts = (d: Date): Post[] => {
     const extra: Post[] = drafts.flatMap((dr) => {
-      const iso =
-        dr.status === "approved" ? dr.scheduledAt : dr.status === "awaiting" ? dr.suggestedAt : null;
-      if (!iso) return [];
-      const when = new Date(iso);
+      if (dr.status !== "approved" || !dr.scheduledAt) return [];
+      const when = new Date(dr.scheduledAt);
       if (when.toDateString() !== d.toDateString()) return [];
       const time = `${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
       return [
@@ -225,7 +230,9 @@ function CalendarPage() {
           id: `td-${dr.id}`,
           time,
           title: draftTitle(dr),
-          status: dr.status === "approved" ? "ready" : "your-review",
+          status: "ready",
+          image: dr.image,
+          body: dr.body,
         } satisfies Post,
       ];
     });
@@ -273,10 +280,14 @@ function CalendarPage() {
     const at = new Date(d);
     const [h, m] = post.time.split(":").map(Number);
     at.setHours(h, m, 0, 0);
-    const teamDraft = drafts.find((x) => `td-${x.id}` === post.id);
     navigate({
       to: "/post-ideas",
-      search: { edit: teamDraft?.body ?? post.title, at: at.toISOString(), from: "calendar" },
+      search: {
+        edit: post.body ?? post.title,
+        at: at.toISOString(),
+        from: "calendar",
+        ...(post.image ? { img: post.image } : {}),
+      },
     });
   };
   const openPath = (day: number | null) => {

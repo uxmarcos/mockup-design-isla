@@ -87,7 +87,12 @@ function ApprovalsPage() {
   const openDraft = (dr: TeamDraft, at: string | null) => {
     navigate({
       to: "/post-ideas",
-      search: { edit: dr.body, ...(at ? { at } : {}), from: "calendar" },
+      search: {
+        edit: dr.body,
+        ...(at ? { at } : {}),
+        ...(dr.image ? { img: dr.image } : {}),
+        from: "approvals",
+      },
     });
   };
 

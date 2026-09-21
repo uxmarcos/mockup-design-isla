@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { TEAM_DRAFT_SAMPLES } from "@/lib/post-samples";
 
 /** Prototype-only store for the managed flow: ideas sent to the Isla team and the drafts they send back. */
 
@@ -18,6 +19,8 @@ export type TeamDraft = {
   body: string;
   preparedBy: string;
   preparedAt: string;
+  /** Optional image the team attached to the post. */
+  image?: string;
   /** ISO date-time proposed by the team, if any. */
   suggestedAt: string | null;
   status: "awaiting" | "approved" | "changes";
@@ -27,7 +30,7 @@ export type TeamDraft = {
 
 type ContentState = { requests: IdeaRequest[]; drafts: TeamDraft[] };
 
-const KEY = "isla.content.v1";
+const KEY = "isla.content.v2";
 export const CONTENT_EVENT = "isla:content-change";
 
 export const draftTitle = (d: Pick<TeamDraft, "body">) => d.body.split("\n")[0]!.trim();
@@ -49,7 +52,8 @@ function seed(): ContentState {
     drafts: [
       {
         id: "td1",
-        body: "Stop measuring marketing by leads. Measure defensible pipeline.\n\nTwo years ago I would have laughed at this. Then I watched two teams hit their MQL number and still lose every strategic room.\n\nWe stopped reporting on volume. We started reporting on named accounts and named humans.\n\nWhat's the one metric your team defends that you privately think is a waste of time?",
+        body: TEAM_DRAFT_SAMPLES[0]!.body,
+        image: TEAM_DRAFT_SAMPLES[0]!.image,
         preparedBy: "Isla team",
         preparedAt: ago(2),
         suggestedAt: at(2, 9),
@@ -57,7 +61,8 @@ function seed(): ContentState {
       },
       {
         id: "td2",
-        body: "The best salespeople I hired asked me the sharpest questions.\n\nNot about commission. About the customer, the buying committee and what we'd do if the deal stalled in week three.\n\nHire for curiosity first — the rest can be coached.",
+        body: TEAM_DRAFT_SAMPLES[1]!.body,
+        image: TEAM_DRAFT_SAMPLES[1]!.image,
         preparedBy: "Isla team",
         preparedAt: ago(26),
         suggestedAt: at(4, 14, 30),
@@ -65,7 +70,8 @@ function seed(): ContentState {
       },
       {
         id: "td3",
-        body: "I killed 40% of our roadmap. Revenue went up.\n\nHere is what we cut, how we decided, and the one conversation that made it easy.\n\nSaying no is a growth strategy.",
+        body: TEAM_DRAFT_SAMPLES[2]!.body,
+        image: TEAM_DRAFT_SAMPLES[2]!.image,
         preparedBy: "Isla team",
         preparedAt: ago(72),
         suggestedAt: null,
@@ -112,15 +118,46 @@ export function addIdeaRequest(idea: { hook: string; pillar: string }, note?: st
 }
 
 /** Approving always requires a date — callers must pass one. */
-export function approveDraft(id: string, scheduledAt: Date, body?: string) {
+export function approveDraft(id: string, scheduledAt: Date, image?: string | null) {
   const s = load();
   save({
     ...s,
     drafts: s.drafts.map((d) =>
       d.id === id
-        ? { ...d, body: body ?? d.body, status: "approved", scheduledAt: scheduledAt.toISOString() }
+        ? {
+            ...d,
+            image: image === undefined ? d.image : (image ?? undefined),
+            status: "approved",
+            scheduledAt: scheduledAt.toISOString(),
+          }
         : d,
     ),
+  });
+}
+
+/** The user can only change the date and the image of a post — the text is written by the team. */
+export function updateTeamDraft(
+  id: string,
+  patch: { date?: Date | null; image?: string | null },
+) {
+  const s = load();
+  save({
+    ...s,
+    drafts: s.drafts.map((d) => {
+      if (d.id !== id) return d;
+      const iso = patch.date === undefined ? undefined : patch.date ? patch.date.toISOString() : null;
+      return {
+        ...d,
+        ...(patch.image !== undefined ? { image: patch.image ?? undefined } : {}),
+        ...(iso === undefined
+          ? {}
+          : d.status === "approved"
+            ? iso
+              ? { scheduledAt: iso }
+              : {}
+            : { suggestedAt: iso }),
+      };
+    }),
   });
 }
 

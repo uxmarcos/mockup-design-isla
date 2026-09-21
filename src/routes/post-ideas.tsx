@@ -92,7 +92,13 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { IDEAS, FEED_IDEAS } from "@/lib/idea-data";
-import { addIdeaRequest, approveDraft, useContentStore, type TeamDraft } from "@/lib/content-requests-store";
+import {
+  addIdeaRequest,
+  approveDraft,
+  updateTeamDraft,
+  useContentStore,
+  type TeamDraft,
+} from "@/lib/content-requests-store";
 
 const searchSchema = z.object({
   tab: z.enum(["ideas", "liked", "drafts", "schedule"]).optional(),
@@ -102,6 +108,8 @@ const searchSchema = z.object({
   edit: z.string().optional(),
   /** ISO date of the post being edited, when it is already scheduled. */
   at: z.string().optional(),
+  /** Image attached to the post being opened. */
+  img: z.string().optional(),
   /** Where the user came from, so the breadcrumb reflects the real path. */
   from: z.string().optional(),
   /** Opens the editor directly with this text as the starting point. */
@@ -243,6 +251,7 @@ function PostIdeasPage() {
     topic: topicParam,
     edit: editParam,
     at: atParam,
+    img: imgParam,
     from: fromParam,
     seed: seedParam,
     ideaId: ideaIdParam,
@@ -270,6 +279,8 @@ function PostIdeasPage() {
   const teamDraft = editingDraft
     ? (teamDrafts.find((t) => t.body === editingDraft.content) ?? null)
     : null;
+  // Posts opened from Calendar or Approvals go back to where they came from.
+  const originPath = fromParam === "calendar" ? "/calendar" : "/approvals";
   const [drafts, setDrafts] = useState<DraftRecord[]>(() => {
     const at = (dayOffset: number, hour: number, minute: number) => {
       const d = new Date();
@@ -542,7 +553,7 @@ function PostIdeasPage() {
 
   function saveDraftAndBack(
     content: string,
-    meta?: { reviewRequested?: boolean; scheduledAt?: Date | null },
+    meta?: { reviewRequested?: boolean; scheduledAt?: Date | null; image?: string | null },
   ) {
     if (!selectedIdea || selectedHook === null) return;
     const scheduledAt = meta?.scheduledAt ? meta.scheduledAt.toISOString() : null;
@@ -585,7 +596,7 @@ function PostIdeasPage() {
     setAnswers([]);
     setStage("manager");
     // Content that already exists is managed in Approvals and Calendar.
-    navigate({ to: "/approvals" });
+    navigate({ to: originPath });
   }
 
 
@@ -611,6 +622,13 @@ function PostIdeasPage() {
           page: title,
           pageMaxWidth: 420,
           root: { label: "Calendar", to: "/calendar" as const },
+        };
+      }
+      if (fromParam === "approvals") {
+        return {
+          page: title,
+          pageMaxWidth: 420,
+          root: { label: "Approvals", to: "/approvals" as const },
         };
       }
       if (scratch || !selectedIdea || selectedIdea.id === "blank") {
@@ -813,20 +831,33 @@ function PostIdeasPage() {
                   initialScheduledAt={
                     editingDraft?.scheduledAt ? new Date(editingDraft.scheduledAt) : null
                   }
+                  initialImage={imgParam ?? null}
                   teamDraft={teamDraft}
-                  onApprove={(content, when) => {
+                  onApprove={(_content, when, image) => {
                     if (!teamDraft) return;
-                    approveDraft(teamDraft.id, when, content);
+                    approveDraft(teamDraft.id, when, image);
                     toast.success(
                       `Approved — scheduled for ${when.toLocaleDateString("en-US", { month: "short", day: "numeric" })} · ${when.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`,
                     );
                     navigate({ to: "/approvals" });
                   }}
-                  onCreateAnother={(content, meta) => saveDraftAndBack(content, meta)}
+                  onCreateAnother={(content, meta) => {
+                    if (teamDraft) {
+                      updateTeamDraft(teamDraft.id, {
+                        date: meta?.scheduledAt ?? null,
+                        image: meta?.image ?? null,
+                      });
+                    }
+                    saveDraftAndBack(content, meta);
+                  }}
                   onContinueRefining={() => {
                     /* stays on draft */
                   }}
                   onBack={() => {
+                    if (fromParam === "calendar" || fromParam === "approvals") {
+                      navigate({ to: originPath });
+                      return;
+                    }
                     const back = editingDraft?.scheduledAt ? "schedule" : "drafts";
                     setEditingDraftId(null);
                     setEditingDraft(null);
@@ -2951,6 +2982,7 @@ function DraftStage({
   hook,
   initialContent,
   initialScheduledAt = null,
+  initialImage = null,
   teamDraft = null,
   onApprove,
   onCreateAnother,
@@ -2964,10 +2996,11 @@ function DraftStage({
   initialScheduledAt?: Date | null;
   /** The Isla-team draft behind this post, when it is waiting for the user's approval. */
   teamDraft?: TeamDraft | null;
-  onApprove?: (content: string, when: Date) => void;
+  initialImage?: string | null;
+  onApprove?: (content: string, when: Date, image: string | null) => void;
   onCreateAnother: (
     content: string,
-    meta?: { reviewRequested?: boolean; scheduledAt?: Date | null },
+    meta?: { reviewRequested?: boolean; scheduledAt?: Date | null; image?: string | null },
   ) => void;
   onContinueRefining: () => void;
   onBack: () => void;
@@ -2975,14 +3008,14 @@ function DraftStage({
 }) {
   const [draft, setDraft] = useState(initialContent ?? "");
   const [generating, setGenerating] = useState(!blank && !initialContent);
-  const [refining, setRefining] = useState(false);
+  // Existing posts are written by the Isla team: text is read-only, the user only changes date/image and comments.
+  const readOnly = !!initialContent;
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [refineInput, setRefineInput] = useState("");
   const [scheduledAt, setScheduledAt] = useState<Date | null>(initialScheduledAt);
   const [approveAfterSchedule, setApproveAfterSchedule] = useState(false);
 
-  const [image, setImage] = useState<string | null>(null);
+  const [image, setImage] = useState<string | null>(initialImage);
   const [commentInput, setCommentInput] = useState("");
   const [comments, setComments] = useState<
     { id: string; author: string; text: string; createdAt: number }[]
@@ -3009,17 +3042,6 @@ function DraftStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function applyRefinement(instruction: string) {
-    if (!instruction.trim() || refining) return;
-    setRefineInput("");
-    setRefining(true);
-    setTimeout(() => {
-      setDraft((prev) => mockRefine(prev, instruction, idea, hook));
-      setRefining(false);
-      toast.success("Draft reshaped");
-    }, 1000);
-  }
-
   function addComment() {
     const text = commentInput.trim();
     if (!text) return;
@@ -3037,7 +3059,7 @@ function DraftStage({
       setScheduleOpen(true);
       return;
     }
-    onApprove?.(draft, scheduledAt);
+    onApprove?.(draft, scheduledAt, image);
   }
 
   function onFilePick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -3059,24 +3081,28 @@ function DraftStage({
         <div className="flex flex-col gap-3 min-h-0">
         <div className="rounded-2xl bg-card border border-border overflow-hidden flex flex-col min-h-0 flex-1">
           <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/60 bg-background/40 shrink-0">
-            <ToolbarBtn>
-              <Heading1 className="size-3.5" />
-            </ToolbarBtn>
-            <ToolbarBtn>
-              <Bold className="size-3.5" />
-            </ToolbarBtn>
-            <ToolbarBtn>
-              <Italic className="size-3.5" />
-            </ToolbarBtn>
-            <ToolbarBtn>
-              <List className="size-3.5" />
-            </ToolbarBtn>
+            {!readOnly && (
+              <>
+                <ToolbarBtn>
+                  <Heading1 className="size-3.5" />
+                </ToolbarBtn>
+                <ToolbarBtn>
+                  <Bold className="size-3.5" />
+                </ToolbarBtn>
+                <ToolbarBtn>
+                  <Italic className="size-3.5" />
+                </ToolbarBtn>
+                <ToolbarBtn>
+                  <List className="size-3.5" />
+                </ToolbarBtn>
+              </>
+            )}
             <label
               className="ml-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer rounded-md px-2 py-1 hover:bg-muted transition-colors"
-              title="Add image"
+              title={image ? "Change image" : "Add image"}
             >
               <ImageIcon className="size-3.5" />
-              <span className="hidden sm:inline">Add image</span>
+              <span className="hidden sm:inline">{image ? "Change image" : "Add image"}</span>
               <input type="file" accept="image/*" className="hidden" onChange={onFilePick} />
             </label>
             {scheduledAt ? (
@@ -3143,70 +3169,38 @@ function DraftStage({
                 transition={{ duration: 0.4 }}
                 className="relative"
               >
-                {refining && (
-                  <div className="sticky top-0 z-10 -mt-1 mb-1 flex items-center justify-end gap-2 text-[11px] text-primary">
-                    <Loader2 className="size-3 animate-spin" /> Refining…
+                {readOnly ? (
+                  <div className="whitespace-pre-wrap text-[14px] leading-[1.7] font-normal tracking-[0.005em]">
+                    {draft}
                   </div>
+                ) : (
+                  <textarea
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    className="w-full bg-transparent outline-none resize-none text-[14px] leading-[1.7] font-normal tracking-[0.005em]"
+                    style={{ minHeight: "auto" }}
+                    rows={Math.max(12, draft.split("\n").length + 2)}
+                    spellCheck={false}
+                  />
                 )}
-                <textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  className="w-full bg-transparent outline-none resize-none text-[14px] leading-[1.7] font-normal tracking-[0.005em]"
-                  style={{ minHeight: "auto" }}
-                  rows={Math.max(12, draft.split("\n").length + 2)}
-                  spellCheck={false}
-                />
 
-                {/* Attachments preview */}
                 {image && (
-                  <div className="mt-4 pt-3 border-t border-border/60 flex flex-wrap gap-2">
-                    <div className="relative group rounded-xl overflow-hidden border border-border w-28 h-28">
-                      <img src={image} alt="attachment" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => setImage(null)}
-                        className="absolute top-1 right-1 size-6 grid place-items-center rounded-full bg-background/80 backdrop-blur border border-border opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <Trash2 className="size-3" />
-                      </button>
-                    </div>
+                  <div className="group relative mt-6 overflow-hidden rounded-xl border border-border">
+                    <img src={image} alt="Post" className="max-h-[380px] w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImage(null)}
+                      title="Remove image"
+                      className="absolute right-2 top-2 grid size-8 place-items-center rounded-[10px] border border-border bg-background/80 opacity-0 backdrop-blur transition hover:bg-background group-hover:opacity-100"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
                   </div>
                 )}
               </motion.div>
             )}
           </div>
 
-          {/* Ask Isla — pinned inside the card (never scrolls), text only */}
-          <div className="shrink-0 border-t border-border/60 p-3">
-            <div className="flex items-end gap-2 rounded-xl border border-border bg-background/60 px-3 py-1.5 transition focus-within:border-primary/50">
-              <Textarea
-                value={refineInput}
-                onChange={(e) => {
-                  setRefineInput(e.target.value);
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    applyRefinement(refineInput);
-                  }
-                }}
-                rows={1}
-                placeholder="Ask Isla to reshape the draft…"
-                disabled={refining || generating}
-                className="min-h-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[14px] shadow-none focus-visible:ring-0"
-              />
-              <Button
-                size="icon"
-                onClick={() => applyRefinement(refineInput)}
-                disabled={!refineInput.trim() || refining || generating}
-                className="mb-0.5 size-8 shrink-0 rounded-full text-white"
-                aria-label="Send"
-              >
-                <ArrowUp className="size-4" />
-              </Button>
-            </div>
-          </div>
         </div>
         </div>
 
@@ -3317,7 +3311,7 @@ function DraftStage({
             </Button>
             <Button
               size="sm"
-              onClick={() => onCreateAnother(draft, { scheduledAt })}
+              onClick={() => onCreateAnother(draft, { scheduledAt, image })}
               disabled={generating || !draft}
               className="text-white [&_svg]:text-white"
             >
@@ -3341,7 +3335,7 @@ function DraftStage({
           setScheduleOpen(false);
           if (approveAfterSchedule) {
             setApproveAfterSchedule(false);
-            onApprove?.(draft, d);
+            onApprove?.(draft, d, image);
             return;
           }
           toast.success(
@@ -3384,27 +3378,6 @@ function ToolbarBtn({ children }: { children: React.ReactNode }) {
       {children}
     </button>
   );
-}
-
-function mockRefine(prev: string, instruction: string, idea: Idea, hook: string): string {
-  const i = instruction.toLowerCase();
-  if (i.includes("short")) {
-    return `${hook}\n\nTwo years ago I would have laughed at this.\n\nThen I watched it play out on my own team: cleaner metrics, emptier stories, losing every strategic room.\n\nWe stopped reporting on volume. We started reporting on named accounts and named humans. Every number came with a story.\n\n${idea.angle}\n\nWhat's the one metric your team defends that you privately think is a waste of time?`;
-  }
-  if (i.includes("story")) {
-    return `${hook}\n\nLast quarter I sat in a QBR with our head of sales. He asked a simple question: "Which of these deals did marketing actually influence?"\n\nSilence.\n\nI had a dashboard with 14 charts. Not one of them could answer him.\n\nWe rebuilt it in a week. Three columns: deal, human, story. That's it.\n\nThe next QBR was a completely different room.\n\n${idea.angle}\n\nCurious — when's the last time your dashboard survived a hostile question?`;
-  }
-  if (i.includes("controversial")) {
-    return `${hook}\n\nMost marketing dashboards are theater.\n\nThey exist to make VPs feel safe in meetings, not to shape a single decision. If yours can't survive one skeptical question from finance, you don't have analytics. You have a coping mechanism.\n\nI've killed three dashboards this year. Nobody missed them.\n\n${idea.angle}\n\nName one metric you'd delete tomorrow if nobody would notice.`;
-  }
-  if (i.includes("technical")) {
-    return `${hook}\n\nHere's the tactical version:\n\n1. Kill any metric where the denominator isn't a real business event (impressions, opens, sessions).\n2. Replace with counts of named accounts moving between defined stages.\n3. Attach a 1-line qualitative note to every number in your weekly report.\n4. If a chart hasn't been referenced in a decision in 30 days, archive it.\n\n${idea.angle}\n\nWhich of those four would break your current stack the most?`;
-  }
-  if (i.includes("salesy") || i.includes("sales")) {
-    return `${hook}\n\nI'm not going to pretend I figured this out from a framework.\n\nI figured it out because I lost an argument I should have won, in a room I care about, with people I respect.\n\nThat's usually how the important lessons arrive.\n\n${idea.angle}\n\nWhat's a lesson you only learned because it embarrassed you first?`;
-  }
-  // free-form: just append a subtle marker
-  return prev + `\n\n(edited: ${instruction})`;
 }
 
 /* ============================ SCHEDULE MODAL ============================ */
