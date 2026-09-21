@@ -2992,7 +2992,6 @@ function DraftStage({
   });
 
   const [image, setImage] = useState<string | null>(null);
-  const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [comments, setComments] = useState<
     { id: string; author: string; text: string; createdAt: number }[]
@@ -3029,6 +3028,16 @@ function DraftStage({
       setRefining(false);
       toast.success("Draft reshaped");
     }, 1000);
+  }
+
+  function addComment() {
+    const text = commentInput.trim();
+    if (!text) return;
+    setComments((cs) => [
+      ...cs,
+      { id: `c-${Date.now()}`, author: "You", text, createdAt: Date.now() },
+    ]);
+    setCommentInput("");
   }
 
   function handleApprove() {
@@ -3226,58 +3235,8 @@ function DraftStage({
           </div>
         </div>
 
-        {/* Right column: actions */}
-        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
-          <div className="flex items-center justify-end gap-2 shrink-0">
-            <Button variant="outline" size="sm" onClick={onBack} disabled={generating}>
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => onCreateAnother(draft, { reviewRequested, scheduledAt })}
-              disabled={generating || !draft}
-              className="text-white [&_svg]:text-white"
-            >
-              Save
-            </Button>
-          </div>
-
-        <div className="rounded-2xl border border-border bg-card p-3 shrink-0">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-              <Users className="size-4 text-primary" /> Isla Human Review
-            </div>
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCommentsOpen(true)}
-              className="gap-1.5"
-            >
-              <MessageSquare className="size-4" />
-              Comments
-              {comments.length > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="ml-0.5 h-5 min-w-5 rounded-full px-1.5 text-[10px]"
-                >
-                  {comments.length}
-                </Badge>
-              )}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => setReviewOpen(true)}
-              disabled={generating || !draft || reviewRequested}
-              className="ml-auto flex-1 text-white [&_svg]:text-white"
-            >
-              {reviewRequested ? "Review requested" : "Request review"}
-            </Button>
-          </div>
-
-        </div>
-
+        {/* Right column: approve, comments, then Cancel / Save */}
+        <div className="flex flex-col gap-4 min-h-0 lg:pb-10">
           {teamDraft?.status === "awaiting" && (
             <div className="rounded-2xl border border-violet/40 bg-violet/5 p-3 shrink-0">
               <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
@@ -3299,6 +3258,107 @@ function DraftStage({
             </div>
           )}
 
+          {/* Comments */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
+            <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-3 py-2.5">
+              <MessageSquare className="size-4 text-primary" />
+              <span className="text-[13px] font-semibold text-foreground">Comments</span>
+              {comments.length > 0 && (
+                <Badge variant="secondary" className="h-5 min-w-5 rounded-full px-1.5 text-[10px]">
+                  {comments.length}
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setReviewOpen(true)}
+                disabled={generating || !draft || reviewRequested}
+                className="ml-auto gap-1.5"
+              >
+                <Users className="size-3.5" />
+                {reviewRequested ? "Review requested" : "Request review"}
+              </Button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+              {comments.length === 0 ? (
+                <div className="grid h-full place-items-center py-8 text-center">
+                  <div>
+                    <MessageSquare className="mx-auto size-7 text-muted-foreground/50" />
+                    <div className="mt-2 text-sm font-medium">No comments yet</div>
+                    <p className="mx-auto mt-1 max-w-[220px] text-xs text-muted-foreground">
+                      Leave a note for whoever reviews this draft.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                comments.map((c) => (
+                  <div key={c.id} className="flex gap-2.5">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-[11px] font-semibold text-primary">
+                      {c.author
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[13px] font-semibold text-foreground">{c.author}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatRelative(c.createdAt)}
+                        </span>
+                      </div>
+                      <div className="mt-1 rounded-2xl rounded-tl-sm bg-muted px-3 py-2 text-[13px] leading-relaxed text-foreground">
+                        {c.text}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="shrink-0 border-t border-border/60 p-3">
+              <div className="rounded-xl border border-border bg-background/60 transition focus-within:border-primary/50">
+                <Textarea
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      addComment();
+                    }
+                  }}
+                  rows={2}
+                  placeholder="Write a comment…"
+                  className="min-h-0 resize-none border-0 bg-transparent py-2 text-[13px] shadow-none focus-visible:ring-0"
+                />
+                <div className="flex items-center justify-end px-1.5 pb-1.5">
+                  <Button
+                    size="sm"
+                    onClick={addComment}
+                    disabled={!commentInput.trim()}
+                    className="h-7 text-white [&_svg]:text-white"
+                  >
+                    <Send className="mr-1 size-3.5" /> Send
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={onBack} disabled={generating}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => onCreateAnother(draft, { reviewRequested, scheduledAt })}
+              disabled={generating || !draft}
+              className="text-white [&_svg]:text-white"
+            >
+              Save
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -3349,95 +3409,6 @@ function DraftStage({
         image={image}
         scheduledAt={scheduledAt}
       />
-      <Sheet open={commentsOpen} onOpenChange={setCommentsOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-          <SheetHeader className="px-5 py-4 border-b border-border">
-            <SheetTitle className="text-base">Comments</SheetTitle>
-            <SheetDescription className="text-xs">
-              Leave notes for whoever reviews this draft.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3">
-            {comments.length === 0 ? (
-              <div className="h-full grid place-items-center text-center py-16">
-                <div>
-                  <MessageSquare className="size-8 mx-auto text-muted-foreground/50" />
-                  <div className="mt-3 text-sm font-medium">No comments yet</div>
-                  <p className="mt-1 text-xs text-muted-foreground max-w-[240px] mx-auto">
-                    Add the first note — reviewers will see it before publishing.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              comments.map((c) => (
-                <div key={c.id} className="flex gap-2.5">
-                  <div className="size-8 rounded-full bg-primary/15 grid place-items-center text-[11px] font-semibold text-primary shrink-0">
-                    {c.author
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[13px] font-semibold text-foreground">
-                        {c.author}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatRelative(c.createdAt)}
-                      </span>
-                    </div>
-                    <div className="mt-1 rounded-2xl rounded-tl-sm bg-muted px-3 py-2 text-[13px] leading-relaxed text-foreground">
-                      {c.text}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="border-t border-border p-3">
-            <div className="rounded-xl border border-border bg-background/60 focus-within:border-primary/50 transition">
-              <Textarea
-                value={commentInput}
-                onChange={(e) => setCommentInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    const text = commentInput.trim();
-                    if (!text) return;
-                    setComments((cs) => [
-                      ...cs,
-                      { id: `c-${Date.now()}`, author: "You", text, createdAt: Date.now() },
-                    ]);
-                    setCommentInput("");
-                  }
-                }}
-                rows={2}
-                placeholder="Write a comment…"
-                className="resize-none border-0 bg-transparent focus-visible:ring-0 text-[13px] min-h-0 py-2"
-              />
-              <div className="flex items-center justify-end px-1.5 pb-1.5">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const text = commentInput.trim();
-                    if (!text) return;
-                    setComments((cs) => [
-                      ...cs,
-                      { id: `c-${Date.now()}`, author: "You", text, createdAt: Date.now() },
-                    ]);
-                    setCommentInput("");
-                  }}
-                  disabled={!commentInput.trim()}
-                  className="h-7 text-white [&_svg]:text-white"
-                >
-                  <Send className="size-3.5 mr-1" /> Send
-                </Button>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
 
     </div>
   );
