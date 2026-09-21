@@ -137,7 +137,7 @@ function getDailyTasks(): DailyTask[] {
       destination: "/post-ideas?tab=drafts",
       count: 1,
       icon: FileCheck2,
-      visible: true,
+      visible: false,
     },
     {
       id: "daily-approve-scheduled",
@@ -146,7 +146,7 @@ function getDailyTasks(): DailyTask[] {
       ctaLabel: "Approve",
       destination: "/post-ideas?tab=drafts",
       icon: CalendarClock,
-      visible: true,
+      visible: false,
     },
     {
       id: "daily-hot-leads",
@@ -175,7 +175,7 @@ function getDailyTasks(): DailyTask[] {
       ctaLabel: "Review ideas",
       destination: "/post-ideas",
       icon: Sparkles,
-      visible: true,
+      visible: false,
     },
   ].filter((t) => t.visible);
 }
@@ -258,12 +258,6 @@ function HomePage() {
     setHydrated(true);
   }, []);
 
-
-  useEffect(() => {
-    if (!user.onboardingCompleted && data.state !== "finished") {
-      navigate({ to: "/onboarding" });
-    }
-  }, [user, data.state, navigate]);
 
   // Deep link: /home?open=linkedin opens the connect dialog directly.
   useEffect(() => {

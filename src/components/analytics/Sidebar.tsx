@@ -7,7 +7,6 @@ import {
   CalendarIcon,
   AnalyticsIcon,
   GraphIcon,
-  CreateContentIcon,
   CommentsIcon,
   SettingsIcon,
 } from "@/components/analytics/nav-icons";
@@ -22,7 +21,6 @@ import { SCENARIOS, applyScenario, loadScenario, type ScenarioId } from "@/lib/s
 import {
   loadOnboarding,
   missionProgress,
-  pendingBrainSubtasks,
   workspaceSlug,
 } from "@/lib/onboarding-store";
 
@@ -69,6 +67,7 @@ const topItems: { icon: NavIcon; label: string; to: string }[] = [
 ];
 
 const bottomItems: { icon: NavIcon; label: string; to: string }[] = [
+  { icon: CalendarIcon, label: "Calendar", to: "/calendar" },
   { icon: AnalyticsIcon, label: "Analytics", to: "/analytics" },
   { icon: GraphIcon, label: "Graph", to: "/outreach" },
 ];
@@ -77,14 +76,8 @@ type SubItem = { label: string; to: string; search?: Record<string, string> };
 
 const pipelineSubItems: SubItem[] = [
   { label: "Leads", to: "/kanban" },
+  { label: "Comments", to: "/outreach" },
   { label: "Target Audience", to: "/settings/target-audience" },
-];
-
-const contentSubItems: SubItem[] = [
-  { label: "Create Content", to: "/content" },
-  { label: "Comments", to: "/inbox" },
-  { label: "Calendar", to: "/calendar" },
-  { label: "Brain", to: "/brain" },
 ];
 
 const settingsSubItems: SubItem[] = [
@@ -125,22 +118,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useRouterState({ select: (s) => s.location });
   const currentPath = location.pathname;
   const settingsActive = currentPath.startsWith("/settings");
-  const pipelineActive = currentPath === "/kanban";
-  const contentActive =
-    currentPath === "/post-ideas" ||
-    currentPath === "/content" ||
-    currentPath === "/trending" ||
-    currentPath === "/inbox" ||
-    currentPath === "/calendar" ||
-    currentPath === "/brain" ||
-    currentPath === "/schedule";
+  const pipelineActive = currentPath === "/kanban" || currentPath === "/outreach";
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
   const [pipelineOpen, setPipelineOpen] = useState(true);
-  const [contentOpen, setContentOpen] = useState(true);
 
   const [scenario, setScenario] = useState<ScenarioId>("daily");
   const [missions, setMissions] = useState({ done: 0, total: 5 });
-  const [brainCount, setBrainCount] = useState(0);
   const [workspace, setWorkspace] = useState<{ name: string; logo?: string } | null>(null);
   useEffect(() => {
     setScenario(loadScenario());
@@ -149,7 +132,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const sync = () => {
       const data = loadOnboarding();
       setMissions(missionProgress(data));
-      setBrainCount(pendingBrainSubtasks(data).length);
       setWorkspace(data.workspace ? { name: data.workspace.name, logo: data.workspace.logo } : null);
     };
     sync();
@@ -295,48 +277,6 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       {sub.label}
                     </NavLink>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Content group */}
-          {collapsed ? (
-            <NavLink to="/content" title="Content" className={rowCls(contentActive, collapsed)}>
-              <CreateContentIcon className="size-4 shrink-0" />
-            </NavLink>
-          ) : (
-            <div>
-              <button
-                onClick={() => setContentOpen((o) => !o)}
-                aria-expanded={contentOpen}
-                className={groupCls(contentActive)}
-              >
-                <CreateContentIcon className="size-4 shrink-0" />
-                Content
-                <ChevronRight
-                  className={`ml-auto size-3.5 transition-transform ${contentOpen ? "rotate-90" : ""}`}
-                />
-              </button>
-              {contentOpen && (
-                <div className="mt-1 ml-[26px] space-y-0.5 border-l border-border light:border-black/10 pl-2">
-                  {contentSubItems.map((sub) => {
-                    const badge = sub.to === "/brain" ? brainCount : 0;
-                    return (
-                      <NavLink
-                        key={sub.label}
-                        to={sub.to}
-                        className={subCls(currentPath === sub.to)}
-                      >
-                        {sub.label}
-                        {badge > 0 && (
-                          <span className="ml-auto grid min-w-4 h-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-                            {badge}
-                          </span>
-                        )}
-                      </NavLink>
-                    );
-                  })}
                 </div>
               )}
             </div>

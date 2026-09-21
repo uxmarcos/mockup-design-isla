@@ -127,7 +127,7 @@ const GUIDES: ScreenGuide[] = [
   },
   {
     key: "/outreach",
-    title: "AI Outreach",
+    title: "Comments Generator",
     summary:
       "AI Outreach is your daily engagement queue: posts from your ICP where a thoughtful comment creates warm entry points.",
     videoTitle: "Running your daily outreach",
