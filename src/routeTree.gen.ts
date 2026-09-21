@@ -13,13 +13,13 @@ import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as PostIdeasRouteImport } from './routes/post-ideas'
-import { Route as OutreachRouteImport } from './routes/outreach'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as CreateContentRouteImport } from './routes/create-content'
 import { Route as ContentRouteImport } from './routes/content'
+import { Route as CommentsRouteImport } from './routes/comments'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BrainRouteImport } from './routes/brain'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
@@ -52,11 +52,6 @@ const PostIdeasRoute = PostIdeasRouteImport.update({
   path: '/post-ideas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OutreachRoute = OutreachRouteImport.update({
-  id: '/outreach',
-  path: '/outreach',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -85,6 +80,11 @@ const CreateContentRoute = CreateContentRouteImport.update({
 const ContentRoute = ContentRouteImport.update({
   id: '/content',
   path: '/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommentsRoute = CommentsRouteImport.update({
+  id: '/comments',
+  path: '/comments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CalendarRoute = CalendarRouteImport.update({
@@ -149,13 +149,13 @@ export interface FileRoutesByFullPath {
   '/analytics': typeof AnalyticsRoute
   '/brain': typeof BrainRoute
   '/calendar': typeof CalendarRoute
+  '/comments': typeof CommentsRoute
   '/content': typeof ContentRoute
   '/create-content': typeof CreateContentRoute
   '/home': typeof HomeRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/onboarding': typeof OnboardingRoute
-  '/outreach': typeof OutreachRoute
   '/post-ideas': typeof PostIdeasRoute
   '/report': typeof ReportRoute
   '/schedule': typeof ScheduleRoute
@@ -173,13 +173,13 @@ export interface FileRoutesByTo {
   '/analytics': typeof AnalyticsRoute
   '/brain': typeof BrainRoute
   '/calendar': typeof CalendarRoute
+  '/comments': typeof CommentsRoute
   '/content': typeof ContentRoute
   '/create-content': typeof CreateContentRoute
   '/home': typeof HomeRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/onboarding': typeof OnboardingRoute
-  '/outreach': typeof OutreachRoute
   '/post-ideas': typeof PostIdeasRoute
   '/report': typeof ReportRoute
   '/schedule': typeof ScheduleRoute
@@ -198,13 +198,13 @@ export interface FileRoutesById {
   '/analytics': typeof AnalyticsRoute
   '/brain': typeof BrainRoute
   '/calendar': typeof CalendarRoute
+  '/comments': typeof CommentsRoute
   '/content': typeof ContentRoute
   '/create-content': typeof CreateContentRoute
   '/home': typeof HomeRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/onboarding': typeof OnboardingRoute
-  '/outreach': typeof OutreachRoute
   '/post-ideas': typeof PostIdeasRoute
   '/report': typeof ReportRoute
   '/schedule': typeof ScheduleRoute
@@ -224,13 +224,13 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/brain'
     | '/calendar'
+    | '/comments'
     | '/content'
     | '/create-content'
     | '/home'
     | '/inbox'
     | '/kanban'
     | '/onboarding'
-    | '/outreach'
     | '/post-ideas'
     | '/report'
     | '/schedule'
@@ -248,13 +248,13 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/brain'
     | '/calendar'
+    | '/comments'
     | '/content'
     | '/create-content'
     | '/home'
     | '/inbox'
     | '/kanban'
     | '/onboarding'
-    | '/outreach'
     | '/post-ideas'
     | '/report'
     | '/schedule'
@@ -272,13 +272,13 @@ export interface FileRouteTypes {
     | '/analytics'
     | '/brain'
     | '/calendar'
+    | '/comments'
     | '/content'
     | '/create-content'
     | '/home'
     | '/inbox'
     | '/kanban'
     | '/onboarding'
-    | '/outreach'
     | '/post-ideas'
     | '/report'
     | '/schedule'
@@ -297,13 +297,13 @@ export interface RootRouteChildren {
   AnalyticsRoute: typeof AnalyticsRoute
   BrainRoute: typeof BrainRoute
   CalendarRoute: typeof CalendarRoute
+  CommentsRoute: typeof CommentsRoute
   ContentRoute: typeof ContentRoute
   CreateContentRoute: typeof CreateContentRoute
   HomeRoute: typeof HomeRoute
   InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
   OnboardingRoute: typeof OnboardingRoute
-  OutreachRoute: typeof OutreachRoute
   PostIdeasRoute: typeof PostIdeasRoute
   ReportRoute: typeof ReportRoute
   ScheduleRoute: typeof ScheduleRoute
@@ -346,13 +346,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostIdeasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/outreach': {
-      id: '/outreach'
-      path: '/outreach'
-      fullPath: '/outreach'
-      preLoaderRoute: typeof OutreachRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -393,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/content'
       fullPath: '/content'
       preLoaderRoute: typeof ContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comments': {
+      id: '/comments'
+      path: '/comments'
+      fullPath: '/comments'
+      preLoaderRoute: typeof CommentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/calendar': {
@@ -481,13 +481,13 @@ const rootRouteChildren: RootRouteChildren = {
   AnalyticsRoute: AnalyticsRoute,
   BrainRoute: BrainRoute,
   CalendarRoute: CalendarRoute,
+  CommentsRoute: CommentsRoute,
   ContentRoute: ContentRoute,
   CreateContentRoute: CreateContentRoute,
   HomeRoute: HomeRoute,
   InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,
   OnboardingRoute: OnboardingRoute,
-  OutreachRoute: OutreachRoute,
   PostIdeasRoute: PostIdeasRoute,
   ReportRoute: ReportRoute,
   ScheduleRoute: ScheduleRoute,

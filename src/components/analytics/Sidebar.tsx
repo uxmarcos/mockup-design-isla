@@ -69,14 +69,14 @@ const topItems: { icon: NavIcon; label: string; to: string }[] = [
 const bottomItems: { icon: NavIcon; label: string; to: string }[] = [
   { icon: CalendarIcon, label: "Calendar", to: "/calendar" },
   { icon: AnalyticsIcon, label: "Analytics", to: "/analytics" },
-  { icon: GraphIcon, label: "Graph", to: "/outreach" },
+  { icon: GraphIcon, label: "Graph", to: "/comments" },
 ];
 
 type SubItem = { label: string; to: string; search?: Record<string, string> };
 
 const pipelineSubItems: SubItem[] = [
   { label: "Leads", to: "/kanban" },
-  { label: "Comments", to: "/outreach" },
+  { label: "Comments", to: "/comments" },
   { label: "Target Audience", to: "/settings/target-audience" },
 ];
 
@@ -118,7 +118,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useRouterState({ select: (s) => s.location });
   const currentPath = location.pathname;
   const settingsActive = currentPath.startsWith("/settings");
-  const pipelineActive = currentPath === "/kanban" || currentPath === "/outreach";
+  const pipelineActive = currentPath === "/kanban" || currentPath === "/comments";
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
   const [pipelineOpen, setPipelineOpen] = useState(true);
 

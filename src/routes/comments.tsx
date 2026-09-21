@@ -9,6 +9,7 @@ import {
   Globe,
   ExternalLink,
   Flame,
+  Eye,
   Check,
   Loader2,
 } from "lucide-react";
@@ -21,10 +22,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/outreach")({
+export const Route = createFileRoute("/comments")({
   head: () => ({
     meta: [
-      { title: "Comments Generator" },
+      { title: "Comments" },
       {
         name: "description",
         content:
@@ -46,7 +47,6 @@ type PostItem = {
   comments: number;
   reposts: number;
   source: "Pipeline" | "Monitored profile";
-  warmingUp?: boolean;
   reason: string;
   context: string;
   suggestedComments: string[];
@@ -95,7 +95,6 @@ const POSTS: PostItem[] = [
     comments: 47,
     reposts: 12,
     source: "Pipeline",
-    warmingUp: true,
     reason: "Warming lead — reacted to your post on conversation scoring last week.",
     context: "Rebuilding CX quality assurance at 200+ agent scale",
     suggestedComments: [
@@ -119,7 +118,6 @@ const POSTS: PostItem[] = [
     comments: 124,
     reposts: 33,
     source: "Pipeline",
-    warmingUp: true,
     reason: "Exact ICP match — downloaded your intent-signal playbook 2 weeks ago.",
     context: "Head of Growth publicly rebuilding her pipeline motion around intent signals",
     suggestedComments: [
@@ -231,7 +229,7 @@ function OutreachPage() {
       >
         <div className="mx-auto w-full max-w-[720px] space-y-6">
           <header>
-            <h1 className="text-2xl font-semibold tracking-tight">Comments Generator</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Comments</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Relevant posts to comment on today, prioritized by intent signals and engagement.
             </p>
@@ -336,10 +334,15 @@ function PostContent({ post }: { post: PostItem }) {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[15px] font-semibold text-card-foreground">{post.author}</span>
-                {post.warmingUp && (
+                {post.source === "Pipeline" ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-1 text-[12px] font-medium leading-none text-amber-300">
                     <Flame className="size-3.5" />
                     Warm up
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-400/15 px-2.5 py-1 text-[12px] font-medium leading-none text-sky-300">
+                    <Eye className="size-3.5" />
+                    Monitored Profile
                   </span>
                 )}
               </div>
@@ -363,7 +366,7 @@ function PostContent({ post }: { post: PostItem }) {
         </div>
       </div>
 
-      {post.warmingUp && (
+      {post.source === "Pipeline" && (
         <div className="mt-4 rounded-xl bg-amber-400/10 px-4 py-2.5 text-[14px] text-amber-300">
           Engaging lead — comment to warm them up. This is a possible reach out.
         </div>
@@ -415,13 +418,7 @@ function PostBlock({
         <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
           Context about this lead
         </div>
-        <p className="mt-1.5 text-[15px] leading-snug text-card-foreground">{post.context}</p>
-        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-          <span className="rounded-full border border-primary/30 px-2 py-0.5 font-medium text-primary">
-            {post.source}
-          </span>
-          <span>{post.reason}</span>
-        </div>
+        <p className="mt-1.5 text-[13px] leading-[1.55] text-card-foreground">{post.context}</p>
       </div>
 
       <div className="px-1">

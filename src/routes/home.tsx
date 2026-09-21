@@ -124,7 +124,7 @@ function getDailyTasks(): DailyTask[] {
       title: "Comment on today's ICP posts",
       description: "It helps to warm up leads and to bring new prospects.",
       ctaLabel: "Write comments",
-      destination: "/outreach",
+      destination: "/comments",
       count: 7,
       icon: MessageSquare,
       visible: true,
@@ -311,7 +311,7 @@ function HomePage() {
     const [path, qs] = destination.split("?");
     const knownRoutes = [
       "/post-ideas",
-      "/outreach",
+      "/comments",
       "/report",
       "/kanban",
       "/inbox",
