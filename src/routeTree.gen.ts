@@ -29,9 +29,6 @@ import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SettingsTargetAudienceRouteImport } from './routes/settings.target-audience'
-import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
-import { Route as SettingsMembersRouteImport } from './routes/settings.members'
-import { Route as SettingsGeneralRouteImport } from './routes/settings.general'
 import { Route as ApiIdeaChatRouteImport } from './routes/api/idea-chat'
 
 const TrendingRoute = TrendingRouteImport.update({
@@ -134,21 +131,6 @@ const SettingsTargetAudienceRoute = SettingsTargetAudienceRouteImport.update({
   path: '/settings/target-audience',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
-  id: '/settings/security',
-  path: '/settings/security',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsMembersRoute = SettingsMembersRouteImport.update({
-  id: '/settings/members',
-  path: '/settings/members',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsGeneralRoute = SettingsGeneralRouteImport.update({
-  id: '/settings/general',
-  path: '/settings/general',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiIdeaChatRoute = ApiIdeaChatRouteImport.update({
   id: '/api/idea-chat',
   path: '/api/idea-chat',
@@ -175,9 +157,6 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof ScheduleRoute
   '/trending': typeof TrendingRoute
   '/api/idea-chat': typeof ApiIdeaChatRoute
-  '/settings/general': typeof SettingsGeneralRoute
-  '/settings/members': typeof SettingsMembersRoute
-  '/settings/security': typeof SettingsSecurityRoute
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
   '/settings/': typeof SettingsIndexRoute
 }
@@ -201,9 +180,6 @@ export interface FileRoutesByTo {
   '/schedule': typeof ScheduleRoute
   '/trending': typeof TrendingRoute
   '/api/idea-chat': typeof ApiIdeaChatRoute
-  '/settings/general': typeof SettingsGeneralRoute
-  '/settings/members': typeof SettingsMembersRoute
-  '/settings/security': typeof SettingsSecurityRoute
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
   '/settings': typeof SettingsIndexRoute
 }
@@ -228,9 +204,6 @@ export interface FileRoutesById {
   '/schedule': typeof ScheduleRoute
   '/trending': typeof TrendingRoute
   '/api/idea-chat': typeof ApiIdeaChatRoute
-  '/settings/general': typeof SettingsGeneralRoute
-  '/settings/members': typeof SettingsMembersRoute
-  '/settings/security': typeof SettingsSecurityRoute
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
   '/settings/': typeof SettingsIndexRoute
 }
@@ -256,9 +229,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/trending'
     | '/api/idea-chat'
-    | '/settings/general'
-    | '/settings/members'
-    | '/settings/security'
     | '/settings/target-audience'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
@@ -282,9 +252,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/trending'
     | '/api/idea-chat'
-    | '/settings/general'
-    | '/settings/members'
-    | '/settings/security'
     | '/settings/target-audience'
     | '/settings'
   id:
@@ -308,9 +275,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/trending'
     | '/api/idea-chat'
-    | '/settings/general'
-    | '/settings/members'
-    | '/settings/security'
     | '/settings/target-audience'
     | '/settings/'
   fileRoutesById: FileRoutesById
@@ -335,9 +299,6 @@ export interface RootRouteChildren {
   ScheduleRoute: typeof ScheduleRoute
   TrendingRoute: typeof TrendingRoute
   ApiIdeaChatRoute: typeof ApiIdeaChatRoute
-  SettingsGeneralRoute: typeof SettingsGeneralRoute
-  SettingsMembersRoute: typeof SettingsMembersRoute
-  SettingsSecurityRoute: typeof SettingsSecurityRoute
   SettingsTargetAudienceRoute: typeof SettingsTargetAudienceRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
@@ -484,27 +445,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsTargetAudienceRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/security': {
-      id: '/settings/security'
-      path: '/settings/security'
-      fullPath: '/settings/security'
-      preLoaderRoute: typeof SettingsSecurityRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/members': {
-      id: '/settings/members'
-      path: '/settings/members'
-      fullPath: '/settings/members'
-      preLoaderRoute: typeof SettingsMembersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/general': {
-      id: '/settings/general'
-      path: '/settings/general'
-      fullPath: '/settings/general'
-      preLoaderRoute: typeof SettingsGeneralRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/idea-chat': {
       id: '/api/idea-chat'
       path: '/api/idea-chat'
@@ -535,9 +475,6 @@ const rootRouteChildren: RootRouteChildren = {
   ScheduleRoute: ScheduleRoute,
   TrendingRoute: TrendingRoute,
   ApiIdeaChatRoute: ApiIdeaChatRoute,
-  SettingsGeneralRoute: SettingsGeneralRoute,
-  SettingsMembersRoute: SettingsMembersRoute,
-  SettingsSecurityRoute: SettingsSecurityRoute,
   SettingsTargetAudienceRoute: SettingsTargetAudienceRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }

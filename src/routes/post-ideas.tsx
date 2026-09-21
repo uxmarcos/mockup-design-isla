@@ -73,6 +73,7 @@ import { Sidebar, useSidebarState } from "@/components/analytics/Sidebar";
 import { Button } from "@/components/ui/button";
 import { BackButton } from "@/components/ui/back-button";
 import { HubBreadcrumb } from "@/components/content/HubBreadcrumb";
+import { CURRENT_USER } from "@/lib/current-user";
 import { ChangeRequestChat, type ChatLine } from "@/components/ChangeRequestChat";
 import { conversationFor } from "@/lib/post-samples";
 import { Textarea } from "@/components/ui/textarea";
@@ -3554,7 +3555,7 @@ function LinkedInPreviewModal({
               <div className="flex items-start gap-2.5 px-5 pt-4">
                 <img
                   src={chrisAvatar}
-                  alt="Chris Theroux"
+                  alt={CURRENT_USER.name}
                   loading="lazy"
                   width={816}
                   height={816}
@@ -3562,7 +3563,7 @@ function LinkedInPreviewModal({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="text-[15px] font-semibold text-[#0a0a0a] leading-tight flex items-center gap-1">
-                    Chris Theroux
+                    {CURRENT_USER.name}
                   </div>
                   <div className="text-[12px] text-[#00000099] leading-tight mt-0.5">
                     Head of Growth at Nortex | B2B pipeline, content & RevOps

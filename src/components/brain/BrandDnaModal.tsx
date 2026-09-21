@@ -1,3 +1,4 @@
+import { CURRENT_USER } from "@/lib/current-user";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Fingerprint, Layers, Lightbulb, TriangleAlert, Users } from "lucide-react";
 import {
@@ -111,7 +112,7 @@ export function BrandDnaModal({
   open,
   onOpenChange,
   onContinue,
-  name = "Marcos Figueiredo",
+  name = CURRENT_USER.name,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;

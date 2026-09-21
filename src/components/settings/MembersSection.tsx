@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Users, Linkedin, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,35 +20,9 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import type { WorkspaceMember } from "@/lib/settings-store";
-import {
-  Section,
-  SettingsShell,
-  StatusPill,
-  useSettingsData,
-} from "@/components/settings/shell";
+import { Section, StatusPill, useSettingsData } from "@/components/settings/shell";
 
-export const Route = createFileRoute("/settings/members")({
-  head: () => ({
-    meta: [
-      { title: "Members — Isla settings" },
-      {
-        name: "description",
-        content:
-          "Manage everyone with access to this Isla workspace, their roles and LinkedIn connection status.",
-      },
-      { property: "og:title", content: "Members — Isla settings" },
-      {
-        property: "og:description",
-        content: "Invite teammates and manage roles in your Isla workspace.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
-  component: MembersSettingsPage,
-});
-
-function MembersSettingsPage() {
+export function MembersSection() {
   const { data, update } = useSettingsData();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -76,25 +49,18 @@ function MembersSettingsPage() {
   };
 
   return (
-    <SettingsShell
-      title="Members"
-      subtitle="Everyone with access to this workspace and each one's LinkedIn connection status."
-    >
+    <>
       <Section
         title="Members"
         subtitle="Roles control who can change workspace settings and automations."
         icon={<Users className="size-4" />}
         right={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-xs">
+            <Button variant="outline" size="sm">
               <Linkedin className="mr-1 size-3.5" />
               Connect LinkedIn
             </Button>
-            <Button
-              size="sm"
-              onClick={() => setInviteOpen(true)}
-              className="bg-[#00BFFF] text-xs text-white hover:bg-[#00BFFF]/90"
-            >
+            <Button size="sm" onClick={() => setInviteOpen(true)} className="text-white">
               <Plus className="mr-1 size-3.5" />
               Invite member
             </Button>
@@ -115,9 +81,7 @@ function MembersSettingsPage() {
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <span className="truncate">{m.name}</span>
                   {m.isYou && (
-                    <span className="text-[10px] font-normal text-muted-foreground">
-                      (you)
-                    </span>
+                    <span className="text-[10px] font-normal text-muted-foreground">(you)</span>
                   )}
                 </div>
                 <div className="truncate text-xs text-muted-foreground">{m.email}</div>
@@ -175,15 +139,12 @@ function MembersSettingsPage() {
             <Button variant="outline" onClick={() => setInviteOpen(false)}>
               Cancel
             </Button>
-            <Button
-              className="bg-[#00BFFF] text-white hover:bg-[#00BFFF]/90"
-              onClick={invite}
-            >
+            <Button className="text-white" onClick={invite}>
               Send invite
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </SettingsShell>
+    </>
   );
 }

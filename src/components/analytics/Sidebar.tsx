@@ -20,6 +20,8 @@ import { SCENARIOS, applyScenario, loadScenario, type ScenarioId } from "@/lib/s
 import { loadOnboarding, missionProgress } from "@/lib/onboarding-store";
 import { useContentStore } from "@/lib/content-requests-store";
 import { WORKSPACE_EVENT, resolveWorkspace, type WorkspaceView } from "@/lib/workspace-store";
+import { CURRENT_USER } from "@/lib/current-user";
+import { ReferralCard } from "@/components/analytics/ReferralCard";
 import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 
 
@@ -83,14 +85,6 @@ const pipelineSubItems: SubItem[] = [
   { label: "Target Audience", to: "/settings/target-audience" },
 ];
 
-const settingsSubItems: SubItem[] = [
-  { label: "General", to: "/settings/general" },
-  { label: "Members", to: "/settings/members" },
-  { label: "Security", to: "/settings/security" },
-];
-
-
-
 function IslaMark({ className }: { className?: string }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="40 40 960 925" fill="none" className={className}>
@@ -120,9 +114,8 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const location = useRouterState({ select: (s) => s.location });
   const currentPath = location.pathname;
-  const settingsActive = currentPath.startsWith("/settings");
+  const settingsActive = currentPath.replace(/\/$/, "") === "/settings";
   const pipelineActive = currentPath === "/kanban" || currentPath === "/comments";
-  const [settingsOpen, setSettingsOpen] = useState(settingsActive);
   const [pipelineOpen, setPipelineOpen] = useState(true);
   const calendarActive = currentPath === "/calendar" || currentPath === "/approvals";
   const [calendarOpen, setCalendarOpen] = useState(true);
@@ -359,49 +352,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Footer */}
       <div className={`space-y-1 ${collapsed ? "p-3" : "p-4"}`}>
-        {/* Settings + submenu, directly above the profile */}
-        {collapsed ? (
-          <NavLink
-            to="/settings/general"
-            title="Settings"
-            className={rowCls(settingsActive, collapsed)}
-          >
-            <SettingsIcon className="size-4 shrink-0" />
-          </NavLink>
-        ) : (
-          <div className="mb-2">
-            <button
-              onClick={() => setSettingsOpen((o) => !o)}
-              aria-expanded={settingsOpen}
-              className={groupCls(settingsActive)}
-            >
-              <SettingsIcon className="size-4 shrink-0" />
-              Settings
-              <ChevronRight
-                className={`ml-auto size-3.5 transition-transform ${settingsOpen ? "rotate-90" : ""}`}
-              />
-            </button>
-            {settingsOpen && (
-              <div className="mt-1 ml-[26px] space-y-0.5 border-l border-border light:border-black/10 pl-2">
-                {settingsSubItems.map((sub) => (
-                  <NavLink
-                    key={sub.label}
-                    to={sub.to}
-                    className={subCls(currentPath === sub.to)}
-                  >
-                    {sub.label}
-                  </NavLink>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {!collapsed && <ReferralCard />}
+
+        {/* Settings, directly above the profile */}
+        <NavLink
+          to="/settings"
+          title={collapsed ? "Settings" : undefined}
+          className={`${rowCls(settingsActive, collapsed)} mb-2`}
+        >
+          <SettingsIcon className="size-4 shrink-0" />
+          {!collapsed && "Settings"}
+        </NavLink>
 
         <div className={`flex items-center justify-between border-t border-border light:border-black/5 pt-4 ${collapsed ? "flex-col gap-3" : ""}`}>
           {!collapsed && (
             <div className="leading-tight">
-              <div className="text-sm font-semibold text-foreground light:text-neutral-900">Chris Theroux</div>
-              <div className="text-xs text-muted-foreground light:text-neutral-500">chris@nortex.com</div>
+              <div className="text-sm font-semibold text-foreground light:text-neutral-900">{CURRENT_USER.name}</div>
+              <div className="text-xs text-muted-foreground light:text-neutral-500">{CURRENT_USER.email}</div>
             </div>
           )}
           <div className={`flex items-center gap-1 ${collapsed ? "flex-col" : ""}`}>

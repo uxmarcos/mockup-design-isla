@@ -1,3 +1,4 @@
+import { CURRENT_USER } from "@/lib/current-user";
 // Prototype-only client store for the Settings page.
 // Persists to localStorage so refresh resumes state.
 
@@ -60,8 +61,8 @@ const defaultState = (): SettingsData => ({
   members: [
     {
       id: "m-you",
-      name: "Marcos Figueiredo",
-      email: "marcosf@isla.to",
+      name: CURRENT_USER.name,
+      email: CURRENT_USER.email,
       linkedinConnected: true,
       brandDna: true,
       role: "super-admin",
@@ -147,6 +148,10 @@ export function loadSettings(): SettingsData {
     } catch {
       // ignore
     }
+    // The logged-in member always mirrors the current user, even in older saved data.
+    merged.members = merged.members.map((m) =>
+      m.isYou ? { ...m, name: CURRENT_USER.name, email: CURRENT_USER.email } : m,
+    );
     return merged;
   } catch {
     return defaultState();

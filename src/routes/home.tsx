@@ -69,6 +69,7 @@ import {
 
 import { ACTIVITY_LOG, formatRelative } from "@/lib/activity-data";
 import { useContentStore } from "@/lib/content-requests-store";
+import { CURRENT_USER } from "@/lib/current-user";
 import { LeadInline, LeadPreviewProvider } from "@/components/LeadPreviewSheet";
 import islaLogo from "@/assets/isla-ai-icon.svg";
 import { toast } from "sonner";
@@ -422,8 +423,8 @@ function HomePage() {
           <header className="mb-14">
             <h1 className="text-3xl font-semibold tracking-tight">
               {!hydrated || firstVisit
-                ? `Welcome, ${user.displayName}`
-                : `${greeting()}, ${user.displayName.split(" ")[0]}.`}
+                ? `Welcome, ${CURRENT_USER.firstName}`
+                : `${greeting()}, ${CURRENT_USER.firstName}.`}
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {!hydrated || firstVisit

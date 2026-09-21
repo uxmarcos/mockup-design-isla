@@ -15,6 +15,10 @@ export type ExtraLead = {
   avatarSeed: number;
   avatarUrl?: string;
   linkedinUrl?: string;
+  email?: string;
+  /** LinkedIn profile (sender) that will contact this lead. */
+  profile?: string;
+  language?: string;
 };
 
 const KEY = "isla:kanban:extra-leads";

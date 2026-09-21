@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { getExtraLeads } from "@/lib/kanban-store";
+import { addExtraLead, getExtraLeads, type ExtraLead } from "@/lib/kanban-store";
+import { AddContactDialog } from "@/components/AddContactDialog";
 import { addSentMessage } from "@/lib/inbox-store";
 import {
   Search,
@@ -109,6 +110,7 @@ const SOURCE_STYLES: Record<string, string> = {
   Research: SOURCE_STYLE,
   "Competitor Post": SOURCE_STYLE,
   Engagement: SOURCE_STYLE,
+  Manual: SOURCE_STYLE,
 };
 
 const SOURCE_TOOLTIPS: Record<string, string> = {
@@ -116,6 +118,7 @@ const SOURCE_TOOLTIPS: Record<string, string> = {
   Research: "Discovered by Isla's research agent based on your ICP.",
   "Competitor Post": "Engaged with a competitor's post recently.",
   Engagement: "Interacted with your own content on LinkedIn.",
+  Manual: "Added manually by you.",
 };
 
 const STATE_TOOLTIPS: Record<string, string> = {
@@ -433,6 +436,7 @@ function KanbanPage() {
   const [activeStage, setActiveStage] = useState<Stage | null>(null);
   const [collapsedCols, setCollapsedCols] = useState<Set<Stage>>(new Set());
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   // Onboarding gating: stages beyond "Leads" stay locked until LinkedIn is
   // connected and the connections CSV is imported.
@@ -480,6 +484,26 @@ function KanbanPage() {
       : "Import your connections so Isla knows who you already know and can start your pipeline.";
 
 
+
+  const addContact = (e: ExtraLead) => {
+    addExtraLead(e);
+    setLeads((prev) => [
+      ...prev,
+      {
+        id: e.id,
+        name: e.name,
+        role: e.role,
+        company: e.company,
+        score: e.score,
+        scoreTone: e.scoreTone,
+        stage: e.stage,
+        source: e.tag,
+        state: "pending_approval",
+        avatarSeed: e.avatarSeed,
+      },
+    ]);
+    toast.success(`${e.name} added to ${STAGES.find((x) => x.key === e.stage)?.label ?? "the board"}`);
+  };
 
   useEffect(() => {
     const merge = () => {
@@ -578,7 +602,7 @@ function KanbanPage() {
               <Filter className="size-4" />
               Filter
             </Button>
-            <Button className="h-10 gap-1.5">
+            <Button className="h-10 gap-1.5 text-white" onClick={() => setAddOpen(true)}>
               <Plus className="size-4" />
               New Lead
             </Button>
@@ -783,6 +807,7 @@ function KanbanPage() {
         </div>
       </main>
       <LeadDetailSheet lead={selectedLead} onClose={() => setSelectedLead(null)} />
+      <AddContactDialog open={addOpen} onOpenChange={setAddOpen} onAdd={addContact} />
     </div>
   </TooltipProvider>
   );
