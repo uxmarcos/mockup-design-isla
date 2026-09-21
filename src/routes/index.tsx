@@ -208,7 +208,7 @@ function HeaderControls({ onOpenReport }: { onOpenReport: () => void }) {
       <Button
         onClick={onOpenReport}
         size="sm"
-        className="h-9 gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+        className="h-9 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
       >
         <FileText className="size-4" />
         Generate Report

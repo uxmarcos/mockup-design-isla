@@ -68,6 +68,7 @@ import {
 } from "@/lib/onboarding-store";
 
 import { ACTIVITY_LOG, formatRelative } from "@/lib/activity-data";
+import { useContentStore } from "@/lib/content-requests-store";
 import { LeadInline, LeadPreviewProvider } from "@/components/LeadPreviewSheet";
 import islaLogo from "@/assets/isla-ai-icon.svg";
 import { toast } from "sonner";
@@ -393,6 +394,13 @@ function HomePage() {
 
   const currentTask = onboardingTasks.find((t) => t.status !== "completed");
 
+  const { drafts: teamDrafts } = useContentStore();
+  const awaitingApproval = teamDrafts.filter((d) => d.status === "awaiting");
+  const latestPrepared = awaitingApproval.reduce<string | null>(
+    (latest, d) => (!latest || d.preparedAt > latest ? d.preparedAt : latest),
+    null,
+  );
+
   const dailyTasks = useMemo(() => getDailyTasks(), []);
   const dailyTotal = dailyTasks.length;
   const dailyRemaining = dailyTasks.filter((t) => !completedDaily.has(t.id)).length;
@@ -427,7 +435,8 @@ function HomePage() {
           <div className="grid grid-cols-1 gap-14 lg:grid-cols-[1fr_280px]">
             {/* LEFT — actions */}
             <div className="space-y-10">
-              {/* Setup — priority */}
+              {/* Setup — priority; disappears once every step is done */}
+              {hydrated && !workspaceReady && (
               <section>
                 <div className="mb-5 flex items-end justify-between gap-4">
                   <div>
@@ -496,6 +505,7 @@ function HomePage() {
                   })}
                 </ul>
               </section>
+              )}
 
               {/* Daily tasks — locked until the workspace setup mission is complete */}
               {workspaceReady ? (
@@ -580,6 +590,26 @@ function HomePage() {
                     </Link>
                   </div>
                   <ul className="card-soft divide-y divide-border/60 rounded-xl border border-border/70 bg-card/40">
+                    {awaitingApproval.length > 0 && latestPrepared && (
+                      <li className="px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-wide text-muted-foreground/80">
+                          {formatRelative(
+                            Math.max(1, Math.round((Date.now() - new Date(latestPrepared).getTime()) / 60000)),
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs leading-relaxed text-foreground/85">
+                          You received{" "}
+                          <Link
+                            to="/approvals"
+                            className="font-medium text-[#00BFFF] hover:underline"
+                          >
+                            {awaitingApproval.length}{" "}
+                            {awaitingApproval.length === 1 ? "piece" : "pieces"} of content
+                          </Link>{" "}
+                          for approval.
+                        </p>
+                      </li>
+                    )}
                     {ACTIVITY_LOG.slice(0, 6).map((a) => (
                       <li key={a.id} className="px-4 py-3">
                         <div className="text-[10px] uppercase tracking-wide text-muted-foreground/80">

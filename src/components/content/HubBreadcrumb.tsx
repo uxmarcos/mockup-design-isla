@@ -5,18 +5,18 @@ import { cn } from "@/lib/utils";
 export type CrumbItem = { label: string; onClick?: () => void };
 
 /**
- * Contextual navigation for subpages inside the Create Content hub.
+ * Contextual navigation for the post-idea subpages, reached from Calendar.
  * The first crumb carries the ← affordance and returns to the origin screen.
  *
  * Examples:
- *   ← Create Content / Drafts / Post title
- *   ← Calendar / Post title
+ *   ← Calendar / Post Ideas
+ *   ← Calendar / Post Ideas / Post title
  */
 export function HubBreadcrumb({
   page,
   className,
   onBack,
-  /** First crumb. Defaults to "Create Content" → /content. */
+  /** First crumb. Defaults to "Calendar" → /calendar. */
   root,
   /** Optional intermediate crumbs between root and the current page. */
   trail = [],
@@ -30,8 +30,8 @@ export function HubBreadcrumb({
   trail?: CrumbItem[];
   pageMaxWidth?: number;
 }) {
-  const rootLabel = root?.label ?? "Create Content";
-  const rootTo = root?.to ?? "/content";
+  const rootLabel = root?.label ?? "Calendar";
+  const rootTo = root?.to ?? "/calendar";
   const rootOnClick = root?.onClick ?? onBack;
 
   const label = (

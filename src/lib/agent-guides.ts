@@ -83,9 +83,9 @@ const GUIDES: ScreenGuide[] = [
   },
   {
     key: "/post-ideas",
-    title: "Create Content",
+    title: "Post Ideas",
     summary:
-      "Create Content is where content starts. Explore ideas generated from your brain and audience, like the ones you want, then refine them into drafts by voice or chat.",
+      "Post Ideas is where content starts. Explore ideas generated for your audience, pick the ones you like and send them to the Isla team, who turn them into posts for your approval.",
     videoTitle: "From idea to published post",
     videoLength: "0:52",
     faqs: [
@@ -95,11 +95,11 @@ const GUIDES: ScreenGuide[] = [
       },
       {
         q: "How do I turn an idea into a post?",
-        a: "Like an idea, open it and choose Refine with Call or Refine with Chat. Isla interviews you, then produces hooks and a full draft.",
+        a: "Open an idea and choose Send to Isla team. Our team writes the post and sends the draft back to Calendar → Approvals for your approval.",
       },
       {
         q: "What happens to my drafts?",
-        a: "Drafts stay in the Drafts tab where you can edit, request a human review, schedule or publish them.",
+        a: "Drafts wait in Calendar → Approvals under Awaiting your approval. Approve them with a publishing date, or request changes.",
       },
     ],
   },

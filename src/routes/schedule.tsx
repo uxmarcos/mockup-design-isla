@@ -5,6 +5,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
  */
 export const Route = createFileRoute("/schedule")({
   beforeLoad: () => {
-    throw redirect({ to: "/calendar", search: { view: "list" } });
+    throw redirect({ to: "/calendar" });
   },
 });

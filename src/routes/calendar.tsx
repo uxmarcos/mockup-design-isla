@@ -7,11 +7,10 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleDashed,
-  FileText,
+  ClipboardCheck,
   Globe,
-  PenLine,
+  Lightbulb,
   Plus,
-  Sparkles,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
@@ -24,12 +23,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Sidebar, useSidebarState } from "@/components/analytics/Sidebar";
+import { draftTitle, useContentStore } from "@/lib/content-requests-store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/calendar")({
   validateSearch: z.object({
-    // Calendar is where existing content is managed: grid or chronological list.
-    view: z.enum(["week", "month", "list"]).optional(),
+    // Calendar is the schedule: week or month grid. Approvals live in their own screen.
+    view: z.enum(["week", "month"]).optional().catch(undefined),
   }),
   head: () => ({
     meta: [
@@ -194,19 +194,12 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
   );
 }
 
-/** Drafts have no date yet — they only exist in the list view. */
-const DRAFT_ITEMS: { id: string; title: string; updated: string }[] = [
-  { id: "dr1", title: "Stop measuring marketing by leads. Measure defensible pipeline.", updated: "Updated 2h ago" },
-  { id: "dr2", title: "The best salespeople I hired asked me the sharpest questions.", updated: "Updated yesterday" },
-  { id: "dr3", title: "I killed 40% of our roadmap. Revenue went up.", updated: "Updated 3 days ago" },
-];
-
 function CalendarPage() {
   const [collapsed, setCollapsed] = useSidebarState();
   const navigate = useNavigate();
   const { view: viewParam } = Route.useSearch();
   const view = viewParam ?? "week";
-  const setView = (v: "week" | "month" | "list") =>
+  const setView = (v: "week" | "month") =>
     navigate({ to: "/calendar", search: { view: v } });
 
   const [offset, setOffset] = useState(0);
@@ -214,6 +207,30 @@ function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const today = useMemo(() => new Date(), []);
+
+  const { drafts } = useContentStore();
+  const awaiting = useMemo(() => drafts.filter((d) => d.status === "awaiting"), [drafts]);
+
+  /** Mock schedule plus the team's drafts: awaiting ones on their suggested day, approved ones on their scheduled day. */
+  const dayPosts = (d: Date): Post[] => {
+    const extra: Post[] = drafts.flatMap((dr) => {
+      const iso =
+        dr.status === "approved" ? dr.scheduledAt : dr.status === "awaiting" ? dr.suggestedAt : null;
+      if (!iso) return [];
+      const when = new Date(iso);
+      if (when.toDateString() !== d.toDateString()) return [];
+      const time = `${String(when.getHours()).padStart(2, "0")}:${String(when.getMinutes()).padStart(2, "0")}`;
+      return [
+        {
+          id: `td-${dr.id}`,
+          time,
+          title: draftTitle(dr),
+          status: dr.status === "approved" ? "ready" : "your-review",
+        } satisfies Post,
+      ];
+    });
+    return [...postsFor(d, today), ...extra].sort((a, b) => a.time.localeCompare(b.time));
+  };
 
   /* week view days */
   const week = useMemo(() => {
@@ -256,9 +273,10 @@ function CalendarPage() {
     const at = new Date(d);
     const [h, m] = post.time.split(":").map(Number);
     at.setHours(h, m, 0, 0);
+    const teamDraft = drafts.find((x) => `td-${x.id}` === post.id);
     navigate({
       to: "/post-ideas",
-      search: { edit: post.title, at: at.toISOString(), from: "calendar" },
+      search: { edit: teamDraft?.body ?? post.title, at: at.toISOString(), from: "calendar" },
     });
   };
   const openPath = (day: number | null) => {
@@ -309,7 +327,7 @@ function CalendarPage() {
 
           <div className="ml-auto flex items-center gap-3">
             <div className="flex items-center rounded-[8px] border border-border/70 bg-secondary p-1">
-              {(["week", "month", "list"] as const).map((v) => (
+              {(["week", "month"] as const).map((v) => (
                 <button
                   key={v}
                   type="button"
@@ -318,7 +336,7 @@ function CalendarPage() {
                     setOffset(0);
                   }}
                   className={cn(
-                    "rounded-[6px] px-4 py-1.5 text-sm capitalize transition-colors",
+                    "flex items-center rounded-[6px] px-4 py-1.5 text-sm capitalize transition-colors",
                     view === v ? "bg-card text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -326,7 +344,7 @@ function CalendarPage() {
                 </button>
               ))}
             </div>
-            <Button size="sm" className="rounded-[8px] text-white" onClick={() => openPath(null)}>
+            <Button size="sm" className=" text-white" onClick={() => openPath(null)}>
               <Plus className="mr-1 size-4" />
               Create New Post
             </Button>
@@ -335,13 +353,11 @@ function CalendarPage() {
 
         {/* grid */}
         <div className="flex-1 overflow-auto">
-          {view === "list" ? (
-            <ListView today={today} onOpenPost={openPost} onNewPost={() => openPath(null)} />
-          ) : view === "week" ? (
+          {view === "week" ? (
 
             <div className="grid min-h-full grid-cols-7">
               {week.map((d) => {
-                const posts = postsFor(d, today);
+                const posts = dayPosts(d);
                 const active = isToday(d);
                 return (
                   <div
@@ -398,7 +414,7 @@ function CalendarPage() {
                   <div key={`lead-${i}`} className="min-h-[132px] border-b border-r border-border/40" />
                 ))}
                 {month.days.map((d) => {
-                  const posts = postsFor(d, today);
+                  const posts = dayPosts(d);
                   const active = isToday(d);
                   return (
                     <div
@@ -452,39 +468,32 @@ function CalendarPage() {
       <Dialog open={pathOpen} onOpenChange={setPathOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>How do you want to create this post?</DialogTitle>
+            <DialogTitle>What would you like to do?</DialogTitle>
             <DialogDescription>
-              {selectedDay ? `Planning for day ${selectedDay}.` : "Pick a starting point."}
+              {selectedDay
+                ? `Planning for day ${selectedDay}.`
+                : "Isla's team writes your posts — pick where to start."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
             <PathOption
-              icon={Sparkles}
-              title="Discover a new idea"
-              description="Swipe through fresh ideas Isla generated for your audience."
+              icon={Lightbulb}
+              title="Select a post idea"
+              description="Choose an idea and it will be sent to our team, who turn it into a real post for you."
               onClick={() => {
                 setPathOpen(false);
                 navigate({ to: "/post-ideas", search: { tab: "ideas" } });
               }}
             />
             <PathOption
-              icon={FileText}
-              title="Use an existing draft"
-              description="Continue from a draft you already started."
+              icon={ClipboardCheck}
+              title="Review & approve drafts"
+              description="See the drafts our team already prepared and approve the ones that are ready."
+              badge={awaiting.length > 0 ? `${awaiting.length} waiting` : undefined}
               onClick={() => {
                 setPathOpen(false);
-                setView("list");
-              }}
-            />
-
-            <PathOption
-              icon={PenLine}
-              title="Create from scratch"
-              description="Write it yourself with Isla assisting."
-              onClick={() => {
-                setPathOpen(false);
-                navigate({ to: "/post-ideas", search: { start: "scratch" } });
+                navigate({ to: "/approvals" });
               }}
             />
           </div>
@@ -498,11 +507,13 @@ function PathOption({
   icon: Icon,
   title,
   description,
+  badge,
   onClick,
 }: {
   icon: LucideIcon;
   title: string;
   description: string;
+  badge?: string;
   onClick: () => void;
 }) {
   return (
@@ -514,142 +525,15 @@ function PathOption({
       <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
         <Icon className="size-4" />
       </span>
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="block text-sm font-medium">{title}</span>
         <span className="block text-xs text-muted-foreground">{description}</span>
       </span>
+      {badge && (
+        <span className="shrink-0 rounded-full bg-[#FFD667]/15 px-2 py-0.5 text-[11px] font-semibold text-[#FFD667]">
+          {badge}
+        </span>
+      )}
     </button>
-  );
-}
-
-/* ------------------------------ list view ------------------------------ */
-
-/**
- * Chronological management view: drafts without a date, then everything that
- * already has one, grouped by day. This is where content that exists lives.
- */
-function ListView({
-  today,
-  onOpenPost,
-  onNewPost,
-}: {
-  today: Date;
-  onOpenPost: (post: Post, d: Date) => void;
-  onNewPost: () => void;
-}) {
-  const groups = useMemo(() => {
-    const out: { date: Date; posts: Post[] }[] = [];
-    for (let i = 0; i < 28; i += 1) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      const posts = postsFor(d, today);
-      if (posts.length) out.push({ date: d, posts });
-    }
-    return out;
-  }, [today]);
-
-  const heading = (d: Date) => {
-    const diff = Math.round(
-      (new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() -
-        new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()) /
-        86400000,
-    );
-    const label = d.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-    if (diff === 0) return `Today · ${label}`;
-    if (diff === 1) return `Tomorrow · ${label}`;
-    return label;
-  };
-
-  return (
-    <div className="mx-auto w-full max-w-3xl px-8 py-8">
-      <section className="mb-10">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            Drafts · no date yet
-            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-[#FFD667]/15 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-[#FFD667]">
-              {DRAFT_ITEMS.length}
-            </span>
-          </h2>
-          <Button variant="outline" size="sm" className="rounded-[8px]" onClick={onNewPost}>
-            <Plus className="mr-1 size-3.5" />
-            New
-          </Button>
-        </div>
-        <ul className="space-y-2">
-          {DRAFT_ITEMS.map((d) => (
-            <li key={d.id}>
-              <button
-                type="button"
-                onClick={() =>
-                  onOpenPost(
-                    { id: d.id, time: "09:00", title: d.title, status: "your-review" },
-                    today,
-                  )
-                }
-                className="clickable-card-row flex w-full items-center gap-3 rounded-[10px] border border-border/70 px-4 py-3 text-left"
-              >
-                <CircleDashed className="size-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{d.title}</span>
-                  <span className="block text-xs text-muted-foreground">{d.updated}</span>
-                </span>
-                <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Draft
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Scheduled
-        </h2>
-        <div className="space-y-6">
-          {groups.map((g) => (
-            <div key={g.date.toISOString()}>
-              <p className="mb-2 text-xs font-semibold text-foreground/70">{heading(g.date)}</p>
-              <ul className="space-y-2">
-                {g.posts.map((p) => {
-                  const s = STATUS[p.status];
-                  const Icon = s.icon;
-                  return (
-                    <li key={p.id}>
-                      <button
-                        type="button"
-                        onClick={() => onOpenPost(p, g.date)}
-                        className="clickable-card-row flex w-full items-center gap-3 rounded-[10px] border border-border/70 px-4 py-3 text-left"
-                      >
-                        <LinkedinMark />
-                        <span className="w-12 shrink-0 text-xs tabular-nums text-muted-foreground">
-                          {p.time}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-sm">{p.title}</span>
-                        <span
-                          className={cn(
-                            "flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                            s.border,
-                            s.bg,
-                            s.color,
-                          )}
-                        >
-                          <Icon className="size-3" />
-                          {s.label}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
   );
 }

@@ -23,6 +23,7 @@ import { Route as ContentRouteImport } from './routes/content'
 import { Route as CommentsRouteImport } from './routes/comments'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as BrainRouteImport } from './routes/brain'
+import { Route as ApprovalsRouteImport } from './routes/approvals'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
@@ -103,6 +104,11 @@ const BrainRoute = BrainRouteImport.update({
   path: '/brain',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApprovalsRoute = ApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/analytics': typeof AnalyticsRoute
+  '/approvals': typeof ApprovalsRoute
   '/brain': typeof BrainRoute
   '/calendar': typeof CalendarRoute
   '/comments': typeof CommentsRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/analytics': typeof AnalyticsRoute
+  '/approvals': typeof ApprovalsRoute
   '/brain': typeof BrainRoute
   '/calendar': typeof CalendarRoute
   '/comments': typeof CommentsRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/analytics': typeof AnalyticsRoute
+  '/approvals': typeof ApprovalsRoute
   '/brain': typeof BrainRoute
   '/calendar': typeof CalendarRoute
   '/comments': typeof CommentsRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/analytics'
+    | '/approvals'
     | '/brain'
     | '/calendar'
     | '/comments'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/analytics'
+    | '/approvals'
     | '/brain'
     | '/calendar'
     | '/comments'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/'
     | '/activity'
     | '/analytics'
+    | '/approvals'
     | '/brain'
     | '/calendar'
     | '/comments'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivityRoute: typeof ActivityRoute
   AnalyticsRoute: typeof AnalyticsRoute
+  ApprovalsRoute: typeof ApprovalsRoute
   BrainRoute: typeof BrainRoute
   CalendarRoute: typeof CalendarRoute
   CommentsRoute: typeof CommentsRoute
@@ -429,6 +442,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrainRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/approvals': {
+      id: '/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof ApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/analytics': {
       id: '/analytics'
       path: '/analytics'
@@ -499,6 +519,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivityRoute: ActivityRoute,
   AnalyticsRoute: AnalyticsRoute,
+  ApprovalsRoute: ApprovalsRoute,
   BrainRoute: BrainRoute,
   CalendarRoute: CalendarRoute,
   CommentsRoute: CommentsRoute,

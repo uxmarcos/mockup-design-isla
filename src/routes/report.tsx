@@ -71,7 +71,7 @@ function ReportPage() {
               onClick={handleExport}
               disabled={exporting}
               size="sm"
-              className="h-9 gap-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-9 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Download className="size-4" />
               {exporting ? "Exporting…" : "Export PDF"}

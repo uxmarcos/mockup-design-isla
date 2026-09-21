@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Copy } from "lucide-react";
 import { Sidebar } from "@/components/analytics/Sidebar";
 import { Button } from "@/components/ui/button";
@@ -141,13 +141,7 @@ function EarnPage() {
 
               <div className="flex flex-1 flex-col items-center justify-center rounded-[18px] border border-border bg-background p-5">
                 <div className="flex flex-col items-center gap-8">
-                  <div className="relative size-[202px] overflow-hidden rounded-[18px]">
-                    <img
-                      src="/earn/qr.png"
-                      alt="Invite QR code"
-                      className="absolute left-[-2.97%] top-[-2.97%] h-[107.43%] w-[106.93%] max-w-none"
-                    />
-                  </div>
+                  <QrCard />
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() =>
@@ -286,6 +280,63 @@ function EarnPage() {
   );
 }
 
+const TILT_MAX = 16;
+
+function QrCard() {
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [spun, setSpun] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setReduceMotion(reduce);
+    if (reduce) {
+      setSpun(true);
+      return;
+    }
+    const t = window.setTimeout(() => setSpun(true), 1150);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const onMove = (e: React.MouseEvent) => {
+    if (!spun || reduceMotion || !stageRef.current) return;
+    const r = stageRef.current.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    setTilt({ x: -(py - 0.5) * TILT_MAX, y: (px - 0.5) * TILT_MAX });
+  };
+
+  return (
+    <div
+      ref={stageRef}
+      onMouseMove={onMove}
+      onMouseLeave={() => setTilt({ x: 0, y: 0 })}
+      className="-m-3.5 flex size-[230px] items-center justify-center [perspective:1200px]"
+    >
+      <div
+        className="[transform-style:preserve-3d]"
+        style={
+          spun
+            ? {
+                transition: "transform 200ms ease-out",
+                transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+              }
+            : { animation: "isla-card-spin 1.1s cubic-bezier(0.2,0.7,0.2,1) 1" }
+        }
+      >
+        <div className="relative size-[202px] overflow-hidden rounded-[18px]">
+          <img
+            src="/earn/qr.png"
+            alt="Invite QR code"
+            className="absolute left-[-2.97%] top-[-2.97%] h-[107.43%] w-[106.93%] max-w-none"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StatRow({
   label,
   value,
@@ -376,7 +427,7 @@ function StripeDialog({
             onOpenChange(false);
             toast("Continue with Stripe", { description: "Prototype flow." });
           }}
-          className="mt-8 h-11 w-full rounded-xl bg-[#635bff] text-sm font-bold text-white hover:bg-[#635bff]/90"
+          className="mt-8 h-11 w-full bg-[#635bff] text-sm font-bold text-white hover:bg-[#635bff]/90"
         >
           Continue with Stripe
         </Button>
@@ -432,14 +483,14 @@ function CustomizeDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="h-10 w-[98px] rounded-xl border-border bg-[#1a1a1a] text-sm font-bold text-white"
+            className="h-10 w-[98px] border-border bg-[#1a1a1a] text-sm font-bold text-white"
           >
             Cancel
           </Button>
           <Button
             disabled={!valid}
             onClick={() => onSave(draft)}
-            className="h-10 w-[205px] rounded-xl text-sm font-bold text-white"
+            className="h-10 w-[205px] text-sm font-bold text-white"
           >
             Save Code
           </Button>

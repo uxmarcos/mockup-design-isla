@@ -90,6 +90,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { IDEAS, FEED_IDEAS } from "@/lib/idea-data";
+import { addIdeaRequest } from "@/lib/content-requests-store";
 
 const searchSchema = z.object({
   tab: z.enum(["ideas", "liked", "drafts", "schedule"]).optional(),
@@ -114,7 +115,7 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/post-ideas")({
   head: () => ({
     meta: [
-      { title: "Create Content — Isla" },
+      { title: "Post Ideas — Isla" },
       {
         name: "description",
         content:
@@ -303,7 +304,7 @@ function PostIdeasPage() {
 
   });
 
-  // Create Content is only about starting: ideas feed + optional saved ideas.
+  // Post Ideas is only about starting: ideas feed + optional saved ideas.
   const managerTab: ManagerTab = "ideas";
   const [feedFilter, setFeedFilter] = useState<FeedFilter>("all");
   const setManagerTab = useCallback(
@@ -332,7 +333,7 @@ function PostIdeasPage() {
 
     if (!editParam && !startParam && !seedParam && !topicParam &&
         (searchTab === "drafts" || searchTab === "schedule")) {
-      navigate({ to: "/calendar", search: { view: "list" } });
+      navigate({ to: "/approvals" });
       return;
     }
     if (searchTab === "liked") setFeedFilter("saved");
@@ -497,20 +498,21 @@ function PostIdeasPage() {
     if (decision === "like") setLiked((l) => [...l, idea]);
   }
 
-  /**
-   * The conversion moment: creating an idea always goes through the existing
-   * refinement selection screen first — never straight into the editor.
-   */
+  /** Managed flow: choosing an idea sends it to the Isla team instead of starting a self-serve draft. */
+  const [sendingIdea, setSendingIdea] = useState<Idea | null>(null);
+
   function createFromIdea(idea: Idea) {
-    setScratch(false);
-    setEditingDraftId(null);
-    setEditingDraft(null);
-    setSelectedIdea(idea);
-    setSelectedHook(null);
-    setStage("select-refinement");
+    setSendingIdea(idea);
   }
 
-
+  function confirmSend(idea: Idea, note: string) {
+    addIdeaRequest(idea, note);
+    setDeck((d) => d.filter((i) => i.id !== idea.id));
+    setLiked((l) => l.filter((i) => i.id !== idea.id));
+    setSendingIdea(null);
+    toast.success("Idea sent to the Isla team");
+    navigate({ to: "/approvals" });
+  }
 
   function undo() {
     const last = history[history.length - 1];
@@ -576,15 +578,15 @@ function PostIdeasPage() {
     setSelectedHook(null);
     setAnswers([]);
     setStage("manager");
-    // Content that already exists is managed in Calendar → List view.
-    navigate({ to: "/calendar", search: { view: "list" } });
+    // Content that already exists is managed in Approvals and Calendar.
+    navigate({ to: "/approvals" });
   }
 
 
 
   /**
    * Breadcrumb is derived from the navigation source, never hardcoded.
-   * Calendar → Post title · Create Content → Post Ideas → Post title.
+   * Calendar → Post title · Calendar → Post Ideas → Post title.
    */
   const breadcrumb = (() => {
     const backToFeed = () => {
@@ -671,6 +673,11 @@ function PostIdeasPage() {
                     decideIdea(idea, "pass");
                     toast("Got it — we won't show that idea again");
                   }}
+                />
+                <SendToTeamDialog
+                  idea={sendingIdea}
+                  onClose={() => setSendingIdea(null)}
+                  onConfirm={confirmSend}
                 />
 
               </motion.div>
@@ -891,13 +898,9 @@ function SwipeStage({
             <Undo2 className="size-5" />
           </button>
         )}
-        <button
-          type="button"
-          onClick={() => current && onRefine(current)}
-          className="rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold transition-colors hover:bg-muted"
-        >
+        <Button variant="outline" onClick={() => current && onRefine(current)}>
           Refine This Idea
-        </button>
+        </Button>
         <button
           onClick={() => onDecide("like")}
           className="size-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 transition shadow-[0_0_24px_hsl(var(--primary)/0.4)]"
@@ -1661,7 +1664,7 @@ function IdeasFeedStage({
         <h1 className="text-3xl font-bold tracking-tight">Pick an idea</h1>
         <p className="text-muted-foreground mt-1 text-sm">
           Personalized ideas plus timely trending opportunities. Open the one that
-          resonates and turn it into a post.
+          resonates and send it to the Isla team to turn into a post.
         </p>
       </div>
 
@@ -1699,13 +1702,9 @@ function IdeasFeedStage({
                 : "You have been through every idea in this cycle. New opportunities show up soon."}
             </p>
             {filter === "saved" && (
-              <button
-                type="button"
-                onClick={() => onFilter("all")}
-                className="mt-5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-              >
+              <Button onClick={() => onFilter("all")} className="mt-5 text-white">
                 Browse ideas
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -1861,32 +1860,29 @@ function IdeaDetailModal({
 
             {/* One cohesive action row: dismiss · save · primary CTA */}
             <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => onDismiss(idea)}
                 aria-label="Not interested"
                 title="Not interested"
-                className="mr-auto inline-flex size-10 items-center justify-center rounded-xl border border-border/60 text-muted-foreground transition-colors hover:text-foreground"
+                className="mr-auto size-10 text-muted-foreground"
               >
                 <X className="size-4" />
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => onSave(idea)}
                 disabled={saved}
-                className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-border/60 px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                className="h-10 text-muted-foreground"
               >
                 <Heart className={`size-4 ${saved ? "fill-current" : ""}`} />
                 {saved ? "Saved" : "Save for later"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onCreate(idea)}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-              >
-                Create this idea
+              </Button>
+              <Button onClick={() => onCreate(idea)} className="h-10 px-5 text-white">
+                Send to Isla team
                 <ArrowRight className="size-4" />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -2822,7 +2818,7 @@ function ChatControl({
           size="icon"
           onClick={onSubmit}
           disabled={!value.trim() || thinking}
-          className="shrink-0 rounded-xl"
+          className="shrink-0"
         >
           <Send className="size-4" />
         </Button>
@@ -3398,7 +3394,7 @@ function DraftStage({
                     size="icon"
                     onClick={() => applyRefinement(refineInput)}
                     disabled={!refineInput.trim() || refining || generating}
-                    className="size-7 rounded-lg"
+                    className="size-7"
                   >
                     <Send className="size-3.5" />
                   </Button>
@@ -3550,7 +3546,7 @@ function DraftStage({
                     setCommentInput("");
                   }}
                   disabled={!commentInput.trim()}
-                  className="h-7 rounded-lg text-white [&_svg]:text-white"
+                  className="h-7 text-white [&_svg]:text-white"
                 >
                   <Send className="size-3.5 mr-1" /> Send
                 </Button>
@@ -3942,6 +3938,68 @@ function LinkedInPreviewModal({
             </div>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+/* ============================ SEND TO TEAM ============================ */
+
+function SendToTeamDialog({
+  idea,
+  onClose,
+  onConfirm,
+}: {
+  idea: Idea | null;
+  onClose: () => void;
+  onConfirm: (idea: Idea, note: string) => void;
+}) {
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    if (idea) setNote("");
+  }, [idea]);
+
+  return (
+    <Dialog open={!!idea} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Send this idea to the Isla team?</DialogTitle>
+          <DialogDescription>
+            Our team will turn it into a post and send the draft back for your approval.
+          </DialogDescription>
+        </DialogHeader>
+        {idea && (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">
+              Pillar: <span className="font-semibold text-primary">{idea.pillar}</span>
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed">{idea.hook}</p>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          <label htmlFor="idea-note" className="text-xs font-medium">
+            Add a note for the team <span className="text-muted-foreground">(optional)</span>
+          </label>
+          <Textarea
+            id="idea-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder="e.g. Mention our Q3 numbers, keep the tone direct."
+            className="resize-none"
+          />
+        </div>
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button className="text-white" onClick={() => idea && onConfirm(idea, note)}>
+            Send to Isla team
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

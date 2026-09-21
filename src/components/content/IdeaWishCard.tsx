@@ -241,7 +241,7 @@ export function IdeaWishCard({
               e.stopPropagation();
               onClick?.();
             }}
-            className="relative z-[3] h-[42px] w-full justify-between rounded-[12px] px-4 text-[16px] font-medium text-primary-foreground"
+            className="relative z-[3] h-[42px] w-full justify-between px-4 text-[16px] font-medium text-primary-foreground"
           >
             <span>{label}</span>
             <ChevronRight className="size-4" />

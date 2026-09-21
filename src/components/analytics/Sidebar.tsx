@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { SCENARIOS, applyScenario, loadScenario, type ScenarioId } from "@/lib/scenario-store";
 import { loadOnboarding, missionProgress } from "@/lib/onboarding-store";
+import { useContentStore } from "@/lib/content-requests-store";
 import { WORKSPACE_EVENT, resolveWorkspace, type WorkspaceView } from "@/lib/workspace-store";
 import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 
@@ -65,12 +66,16 @@ const topItems: { icon: NavIcon; label: string; to: string }[] = [
 ];
 
 const bottomItems: { icon: NavIcon; label: string; to: string }[] = [
-  { icon: CalendarIcon, label: "Calendar", to: "/calendar" },
   { icon: AnalyticsIcon, label: "Analytics", to: "/analytics" },
   { icon: EarnIcon, label: "Earn", to: "/earn" },
 ];
 
 type SubItem = { label: string; to: string; search?: Record<string, string> };
+
+const calendarSubItems: SubItem[] = [
+  { label: "Calendar", to: "/calendar" },
+  { label: "Approvals", to: "/approvals" },
+];
 
 const pipelineSubItems: SubItem[] = [
   { label: "Leads", to: "/kanban" },
@@ -119,6 +124,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pipelineActive = currentPath === "/kanban" || currentPath === "/comments";
   const [settingsOpen, setSettingsOpen] = useState(settingsActive);
   const [pipelineOpen, setPipelineOpen] = useState(true);
+  const calendarActive = currentPath === "/calendar" || currentPath === "/approvals";
+  const [calendarOpen, setCalendarOpen] = useState(true);
+  const { drafts } = useContentStore();
+  const pendingApprovals = drafts.filter((d) => d.status === "awaiting").length;
 
   const [scenario, setScenario] = useState<ScenarioId>("daily");
   const [missions, setMissions] = useState({ done: 0, total: 5 });
@@ -289,6 +298,41 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       className={subCls(currentPath === sub.to)}
                     >
                       {sub.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Calendar group */}
+          {collapsed ? (
+            <NavLink to="/calendar" title="Calendar" className={rowCls(calendarActive, collapsed)}>
+              <CalendarIcon className="size-4 shrink-0" />
+            </NavLink>
+          ) : (
+            <div>
+              <button
+                onClick={() => setCalendarOpen((o) => !o)}
+                aria-expanded={calendarOpen}
+                className={groupCls(calendarActive)}
+              >
+                <CalendarIcon className="size-4 shrink-0" />
+                Calendar
+                <ChevronRight
+                  className={`ml-auto size-3.5 transition-transform ${calendarOpen ? "rotate-90" : ""}`}
+                />
+              </button>
+              {calendarOpen && (
+                <div className="mt-1 ml-[26px] space-y-0.5 border-l border-border light:border-black/10 pl-2">
+                  {calendarSubItems.map((sub) => (
+                    <NavLink key={sub.label} to={sub.to} className={subCls(currentPath === sub.to)}>
+                      {sub.label}
+                      {sub.to === "/approvals" && pendingApprovals > 0 && (
+                        <span className="ml-auto grid min-w-4 h-4 place-items-center rounded-full bg-[#FFD667]/15 px-1 text-[10px] font-semibold tabular-nums text-[#FFD667]">
+                          {pendingApprovals}
+                        </span>
+                      )}
                     </NavLink>
                   ))}
                 </div>
