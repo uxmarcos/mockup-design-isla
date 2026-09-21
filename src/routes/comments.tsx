@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { avatarSrc } from "@/lib/avatars";
 
 export const Route = createFileRoute("/comments")({
   head: () => ({
@@ -60,7 +61,7 @@ const POSTS: PostItem[] = [
   {
     id: "1",
     author: "Marcos Figueiredo",
-    avatar: "https://i.pravatar.cc/120?u=marcos-figueiredo",
+    avatar: avatarSrc("M1"),
     headline: "VP of Customer Experience · UX/UI · Design Systems & Metrics",
     postedAt: "1 hour ago",
     content: [
@@ -84,7 +85,7 @@ const POSTS: PostItem[] = [
   {
     id: "2",
     author: "Sarah Chen",
-    avatar: "https://i.pravatar.cc/120?u=sarah-chen",
+    avatar: avatarSrc("F1"),
     headline: "VP of Customer Experience · Acme Corp",
     postedAt: "2 hours ago",
     content: [
@@ -107,7 +108,7 @@ const POSTS: PostItem[] = [
   {
     id: "3",
     author: "Julia Almeida",
-    avatar: "https://i.pravatar.cc/120?u=julia-almeida",
+    avatar: avatarSrc("F2"),
     headline: "Head of Growth · SaaS B2B",
     postedAt: "5 hours ago",
     content: [
@@ -130,7 +131,7 @@ const POSTS: PostItem[] = [
   {
     id: "4",
     author: "Priya Nair",
-    avatar: "https://i.pravatar.cc/120?u=priya-nair",
+    avatar: avatarSrc("F5"),
     headline: "VP RevOps · HealthTech",
     postedAt: "8 hours ago",
     content: [
@@ -153,7 +154,7 @@ const POSTS: PostItem[] = [
   {
     id: "5",
     author: "Marcus Rivera",
-    avatar: "https://i.pravatar.cc/120?u=marcus-rivera",
+    avatar: avatarSrc("M2"),
     headline: "CEO · Fintech Unicorn",
     postedAt: "1 day ago",
     content: [

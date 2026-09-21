@@ -41,6 +41,7 @@ import * as SheetPrimitive from "@radix-ui/react-dialog";
 
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { personAvatar } from "@/lib/avatars";
 
 export const Route = createFileRoute("/kanban")({
   head: () => ({
@@ -179,10 +180,8 @@ export function findOrSynthLead(name: string): Lead {
   };
 }
 
-function avatarUrl(seed: number, _name: string) {
-  // Real human headshots via pravatar (deterministic by seed, 1..70)
-  const idx = ((seed - 1) % 70) + 1;
-  return `https://i.pravatar.cc/150?img=${idx}`;
+function avatarUrl(name: string) {
+  return personAvatar(name);
 }
 
 /** Contextual CTA per stage. Returns null when no action exists. */
@@ -358,7 +357,7 @@ function LeadCard({ lead, onOpen }: { lead: Lead; onOpen: (lead: Lead) => void }
         <div className="flex items-center gap-2.5">
           <div className="relative shrink-0 h-9 w-9">
             <img
-              src={avatarUrl(lead.avatarSeed, lead.name)}
+              src={avatarUrl(lead.name)}
               alt=""
               className="size-9 rounded-full bg-muted object-cover"
             />
@@ -751,7 +750,7 @@ function KanbanPage() {
                 >
                   <div className="flex items-center gap-3">
                     <img
-                      src={avatarUrl(lead.avatarSeed, lead.name)}
+                      src={avatarUrl(lead.name)}
                       alt=""
                       className="size-8 rounded-full bg-muted"
                     />
@@ -1048,7 +1047,7 @@ export function LeadDetailSheet({ lead, onClose }: { lead: Lead | null; onClose:
               <div className="flex min-w-0 items-center gap-3">
                 <div className="relative shrink-0 h-11 w-11">
                   <img
-                    src={avatarUrl(lead.avatarSeed, lead.name)}
+                    src={avatarUrl(lead.name)}
                     alt=""
                     className="size-11 rounded-full object-cover"
                   />

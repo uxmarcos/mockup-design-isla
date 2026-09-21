@@ -17,6 +17,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as EarnRouteImport } from './routes/earn'
 import { Route as CreateContentRouteImport } from './routes/create-content'
 import { Route as ContentRouteImport } from './routes/content'
 import { Route as CommentsRouteImport } from './routes/comments'
@@ -70,6 +71,11 @@ const InboxRoute = InboxRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EarnRoute = EarnRouteImport.update({
+  id: '/earn',
+  path: '/earn',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CreateContentRoute = CreateContentRouteImport.update({
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/comments': typeof CommentsRoute
   '/content': typeof ContentRoute
   '/create-content': typeof CreateContentRoute
+  '/earn': typeof EarnRoute
   '/home': typeof HomeRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/comments': typeof CommentsRoute
   '/content': typeof ContentRoute
   '/create-content': typeof CreateContentRoute
+  '/earn': typeof EarnRoute
   '/home': typeof HomeRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/comments': typeof CommentsRoute
   '/content': typeof ContentRoute
   '/create-content': typeof CreateContentRoute
+  '/earn': typeof EarnRoute
   '/home': typeof HomeRoute
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/content'
     | '/create-content'
+    | '/earn'
     | '/home'
     | '/inbox'
     | '/kanban'
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/content'
     | '/create-content'
+    | '/earn'
     | '/home'
     | '/inbox'
     | '/kanban'
@@ -275,6 +286,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/content'
     | '/create-content'
+    | '/earn'
     | '/home'
     | '/inbox'
     | '/kanban'
@@ -300,6 +312,7 @@ export interface RootRouteChildren {
   CommentsRoute: typeof CommentsRoute
   ContentRoute: typeof ContentRoute
   CreateContentRoute: typeof CreateContentRoute
+  EarnRoute: typeof EarnRoute
   HomeRoute: typeof HomeRoute
   InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
@@ -372,6 +385,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/earn': {
+      id: '/earn'
+      path: '/earn'
+      fullPath: '/earn'
+      preLoaderRoute: typeof EarnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/create-content': {
@@ -484,6 +504,7 @@ const rootRouteChildren: RootRouteChildren = {
   CommentsRoute: CommentsRoute,
   ContentRoute: ContentRoute,
   CreateContentRoute: CreateContentRoute,
+  EarnRoute: EarnRoute,
   HomeRoute: HomeRoute,
   InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,

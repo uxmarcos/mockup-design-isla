@@ -1,12 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ComponentType, type ReactElement, type ReactNode } from "react";
-import { LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LogOut, ChevronLeft, ChevronRight, Gift, Pencil } from "lucide-react";
 import {
   HomeIcon,
   LeadBoardIcon,
   CalendarIcon,
   AnalyticsIcon,
-  GraphIcon,
   CommentsIcon,
   SettingsIcon,
 } from "@/components/analytics/nav-icons";
@@ -18,15 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SCENARIOS, applyScenario, loadScenario, type ScenarioId } from "@/lib/scenario-store";
-import {
-  loadOnboarding,
-  missionProgress,
-  workspaceSlug,
-} from "@/lib/onboarding-store";
+import { loadOnboarding, missionProgress } from "@/lib/onboarding-store";
+import { WORKSPACE_EVENT, resolveWorkspace, type WorkspaceView } from "@/lib/workspace-store";
+import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 
 
 import { AnimatedThemeToggler } from "@/registry/magicui/animated-theme-toggler";
-import nortexLogo from "@/assets/nortex-logo.png.asset.json";
 
 const NavLink = Link as unknown as ComponentType<{
   to: string;
@@ -61,6 +57,8 @@ const subCls = (active: boolean) =>
 
 type NavIcon = (p: { className?: string }) => ReactElement;
 
+const EarnIcon: NavIcon = ({ className }) => <Gift className={className} />;
+
 
 const topItems: { icon: NavIcon; label: string; to: string }[] = [
   { icon: HomeIcon, label: "Home", to: "/home" },
@@ -69,7 +67,7 @@ const topItems: { icon: NavIcon; label: string; to: string }[] = [
 const bottomItems: { icon: NavIcon; label: string; to: string }[] = [
   { icon: CalendarIcon, label: "Calendar", to: "/calendar" },
   { icon: AnalyticsIcon, label: "Analytics", to: "/analytics" },
-  { icon: GraphIcon, label: "Graph", to: "/comments" },
+  { icon: EarnIcon, label: "Earn", to: "/earn" },
 ];
 
 type SubItem = { label: string; to: string; search?: Record<string, string> };
@@ -124,7 +122,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const [scenario, setScenario] = useState<ScenarioId>("daily");
   const [missions, setMissions] = useState({ done: 0, total: 5 });
-  const [workspace, setWorkspace] = useState<{ name: string; logo?: string } | null>(null);
+  const [workspace, setWorkspace] = useState<WorkspaceView | null>(null);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
   useEffect(() => {
     setScenario(loadScenario());
   }, []);
@@ -132,14 +131,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const sync = () => {
       const data = loadOnboarding();
       setMissions(missionProgress(data));
-      setWorkspace(data.workspace ? { name: data.workspace.name, logo: data.workspace.logo } : null);
+      setWorkspace(resolveWorkspace());
     };
     sync();
     const id = window.setInterval(sync, 1000);
     window.addEventListener("focus", sync);
+    window.addEventListener(WORKSPACE_EVENT, sync);
     return () => {
       window.clearInterval(id);
       window.removeEventListener("focus", sync);
+      window.removeEventListener(WORKSPACE_EVENT, sync);
     };
   }, [currentPath]);
 
@@ -199,24 +200,37 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {/* Workspace */}
         <div className={`py-4 border-b border-border light:border-black/5 ${collapsed ? "px-2 flex justify-center" : "px-4"}`}>
           <div className={`flex items-center ${collapsed ? "" : "gap-2.5"}`}>
-            {workspace && !workspace.logo ? (
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-sm font-semibold text-foreground light:text-neutral-900">
-                {workspace.name.trim().charAt(0).toUpperCase()}
-              </div>
-            ) : (
-              <img
-                src={workspace?.logo ?? nortexLogo.url}
-                alt={workspace?.name ?? "Nortex"}
-                className="size-9 rounded-md shrink-0 object-cover"
-              />
-            )}
+            <button
+              type="button"
+              onClick={() => workspace && setWorkspaceOpen(true)}
+              aria-label="Edit workspace"
+              title="Edit workspace"
+              className="group relative size-9 shrink-0 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {workspace && !workspace.logo ? (
+                <div className="flex size-9 items-center justify-center rounded-md bg-muted text-sm font-semibold text-foreground light:text-neutral-900">
+                  {workspace.name.trim().charAt(0).toUpperCase()}
+                </div>
+              ) : (
+                <img
+                  src={workspace?.logo}
+                  alt={workspace?.name ?? ""}
+                  className="size-9 rounded-md object-cover"
+                />
+              )}
+              <span className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                <span className="flex size-6 items-center justify-center rounded-full bg-white/20">
+                  <Pencil className="size-3.5 text-white" />
+                </span>
+              </span>
+            </button>
             {!collapsed && (
               <div className="leading-tight">
                 <div className="text-sm font-semibold text-foreground light:text-neutral-900">
                   {workspace?.name ?? "Nortex"}
                 </div>
                 <div className="text-xs text-muted-foreground light:text-neutral-500">
-                  /{workspace ? workspaceSlug(workspace.name) : "nortex"}
+                  /{workspace?.slug ?? "nortex"}
                 </div>
               </div>
             )}
@@ -354,6 +368,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </div>
         </div>
       </div>
+      {workspace && (
+        <WorkspaceDialog open={workspaceOpen} onOpenChange={setWorkspaceOpen} workspace={workspace} />
+      )}
     </aside>
   );
 }

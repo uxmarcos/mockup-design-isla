@@ -46,7 +46,7 @@ export function IslaAgent() {
     return () => window.removeEventListener(SCENARIO_EVENT, onChange);
   }, []);
 
-  // First visit per screen: auto-open expanded with video + 3 FAQs.
+  // On a screen's first visit the panel shows video + FAQs, but only when the user opens it.
   useEffect(() => {
     const fresh = !isScreenVisited(guide.key);
     setFirstVisit(fresh);
@@ -58,10 +58,8 @@ export function IslaAgent() {
       if (!agentIntroSeen() && pathname !== "/onboarding") {
         setIntroOpen(true);
       }
-      setOpen(true);
-    } else {
-      setOpen(false);
     }
+    setOpen(false);
   }, [guide.key, pathname, bump]);
 
   useEffect(() => {
