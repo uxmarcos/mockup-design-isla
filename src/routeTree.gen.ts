@@ -13,6 +13,7 @@ import { Route as TrendingRouteImport } from './routes/trending'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as PostIdeasRouteImport } from './routes/post-ideas'
+import { Route as OperatorRouteImport } from './routes/operator'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as KanbanRouteImport } from './routes/kanban'
 import { Route as InboxRouteImport } from './routes/inbox'
@@ -28,8 +29,15 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as OperatorIndexRouteImport } from './routes/operator.index'
 import { Route as SettingsTargetAudienceRouteImport } from './routes/settings.target-audience'
+import { Route as OperatorInboxRouteImport } from './routes/operator.inbox'
+import { Route as OperatorCalendarRouteImport } from './routes/operator.calendar'
 import { Route as ApiIdeaChatRouteImport } from './routes/api/idea-chat'
+import { Route as OperatorPostsIndexRouteImport } from './routes/operator.posts.index'
+import { Route as OperatorClientsIndexRouteImport } from './routes/operator.clients.index'
+import { Route as OperatorPostsPostIdRouteImport } from './routes/operator.posts.$postId'
+import { Route as OperatorClientsClientIdRouteImport } from './routes/operator.clients.$clientId'
 
 const TrendingRoute = TrendingRouteImport.update({
   id: '/trending',
@@ -49,6 +57,11 @@ const ReportRoute = ReportRouteImport.update({
 const PostIdeasRoute = PostIdeasRouteImport.update({
   id: '/post-ideas',
   path: '/post-ideas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperatorRoute = OperatorRouteImport.update({
+  id: '/operator',
+  path: '/operator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -126,15 +139,50 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OperatorIndexRoute = OperatorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OperatorRoute,
+} as any)
 const SettingsTargetAudienceRoute = SettingsTargetAudienceRouteImport.update({
   id: '/settings/target-audience',
   path: '/settings/target-audience',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OperatorInboxRoute = OperatorInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const OperatorCalendarRoute = OperatorCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => OperatorRoute,
+} as any)
 const ApiIdeaChatRoute = ApiIdeaChatRouteImport.update({
   id: '/api/idea-chat',
   path: '/api/idea-chat',
   getParentRoute: () => rootRouteImport,
+} as any)
+const OperatorPostsIndexRoute = OperatorPostsIndexRouteImport.update({
+  id: '/posts/',
+  path: '/posts/',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const OperatorClientsIndexRoute = OperatorClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const OperatorPostsPostIdRoute = OperatorPostsPostIdRouteImport.update({
+  id: '/posts/$postId',
+  path: '/posts/$postId',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const OperatorClientsClientIdRoute = OperatorClientsClientIdRouteImport.update({
+  id: '/clients/$clientId',
+  path: '/clients/$clientId',
+  getParentRoute: () => OperatorRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -152,13 +200,21 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/onboarding': typeof OnboardingRoute
+  '/operator': typeof OperatorRouteWithChildren
   '/post-ideas': typeof PostIdeasRoute
   '/report': typeof ReportRoute
   '/schedule': typeof ScheduleRoute
   '/trending': typeof TrendingRoute
   '/api/idea-chat': typeof ApiIdeaChatRoute
+  '/operator/calendar': typeof OperatorCalendarRoute
+  '/operator/inbox': typeof OperatorInboxRoute
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
+  '/operator/': typeof OperatorIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/operator/clients/$clientId': typeof OperatorClientsClientIdRoute
+  '/operator/posts/$postId': typeof OperatorPostsPostIdRoute
+  '/operator/clients/': typeof OperatorClientsIndexRoute
+  '/operator/posts/': typeof OperatorPostsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -180,8 +236,15 @@ export interface FileRoutesByTo {
   '/schedule': typeof ScheduleRoute
   '/trending': typeof TrendingRoute
   '/api/idea-chat': typeof ApiIdeaChatRoute
+  '/operator/calendar': typeof OperatorCalendarRoute
+  '/operator/inbox': typeof OperatorInboxRoute
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
+  '/operator': typeof OperatorIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/operator/clients/$clientId': typeof OperatorClientsClientIdRoute
+  '/operator/posts/$postId': typeof OperatorPostsPostIdRoute
+  '/operator/clients': typeof OperatorClientsIndexRoute
+  '/operator/posts': typeof OperatorPostsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -199,13 +262,21 @@ export interface FileRoutesById {
   '/inbox': typeof InboxRoute
   '/kanban': typeof KanbanRoute
   '/onboarding': typeof OnboardingRoute
+  '/operator': typeof OperatorRouteWithChildren
   '/post-ideas': typeof PostIdeasRoute
   '/report': typeof ReportRoute
   '/schedule': typeof ScheduleRoute
   '/trending': typeof TrendingRoute
   '/api/idea-chat': typeof ApiIdeaChatRoute
+  '/operator/calendar': typeof OperatorCalendarRoute
+  '/operator/inbox': typeof OperatorInboxRoute
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
+  '/operator/': typeof OperatorIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/operator/clients/$clientId': typeof OperatorClientsClientIdRoute
+  '/operator/posts/$postId': typeof OperatorPostsPostIdRoute
+  '/operator/clients/': typeof OperatorClientsIndexRoute
+  '/operator/posts/': typeof OperatorPostsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -224,13 +295,21 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/kanban'
     | '/onboarding'
+    | '/operator'
     | '/post-ideas'
     | '/report'
     | '/schedule'
     | '/trending'
     | '/api/idea-chat'
+    | '/operator/calendar'
+    | '/operator/inbox'
     | '/settings/target-audience'
+    | '/operator/'
     | '/settings/'
+    | '/operator/clients/$clientId'
+    | '/operator/posts/$postId'
+    | '/operator/clients/'
+    | '/operator/posts/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -252,8 +331,15 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/trending'
     | '/api/idea-chat'
+    | '/operator/calendar'
+    | '/operator/inbox'
     | '/settings/target-audience'
+    | '/operator'
     | '/settings'
+    | '/operator/clients/$clientId'
+    | '/operator/posts/$postId'
+    | '/operator/clients'
+    | '/operator/posts'
   id:
     | '__root__'
     | '/'
@@ -270,13 +356,21 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/kanban'
     | '/onboarding'
+    | '/operator'
     | '/post-ideas'
     | '/report'
     | '/schedule'
     | '/trending'
     | '/api/idea-chat'
+    | '/operator/calendar'
+    | '/operator/inbox'
     | '/settings/target-audience'
+    | '/operator/'
     | '/settings/'
+    | '/operator/clients/$clientId'
+    | '/operator/posts/$postId'
+    | '/operator/clients/'
+    | '/operator/posts/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -294,6 +388,7 @@ export interface RootRouteChildren {
   InboxRoute: typeof InboxRoute
   KanbanRoute: typeof KanbanRoute
   OnboardingRoute: typeof OnboardingRoute
+  OperatorRoute: typeof OperatorRouteWithChildren
   PostIdeasRoute: typeof PostIdeasRoute
   ReportRoute: typeof ReportRoute
   ScheduleRoute: typeof ScheduleRoute
@@ -331,6 +426,13 @@ declare module '@tanstack/react-router' {
       path: '/post-ideas'
       fullPath: '/post-ideas'
       preLoaderRoute: typeof PostIdeasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operator': {
+      id: '/operator'
+      path: '/operator'
+      fullPath: '/operator'
+      preLoaderRoute: typeof OperatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -438,12 +540,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/operator/': {
+      id: '/operator/'
+      path: '/'
+      fullPath: '/operator/'
+      preLoaderRoute: typeof OperatorIndexRouteImport
+      parentRoute: typeof OperatorRoute
+    }
     '/settings/target-audience': {
       id: '/settings/target-audience'
       path: '/settings/target-audience'
       fullPath: '/settings/target-audience'
       preLoaderRoute: typeof SettingsTargetAudienceRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/operator/inbox': {
+      id: '/operator/inbox'
+      path: '/inbox'
+      fullPath: '/operator/inbox'
+      preLoaderRoute: typeof OperatorInboxRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/operator/calendar': {
+      id: '/operator/calendar'
+      path: '/calendar'
+      fullPath: '/operator/calendar'
+      preLoaderRoute: typeof OperatorCalendarRouteImport
+      parentRoute: typeof OperatorRoute
     }
     '/api/idea-chat': {
       id: '/api/idea-chat'
@@ -452,8 +575,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiIdeaChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/operator/posts/': {
+      id: '/operator/posts/'
+      path: '/posts'
+      fullPath: '/operator/posts/'
+      preLoaderRoute: typeof OperatorPostsIndexRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/operator/clients/': {
+      id: '/operator/clients/'
+      path: '/clients'
+      fullPath: '/operator/clients/'
+      preLoaderRoute: typeof OperatorClientsIndexRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/operator/posts/$postId': {
+      id: '/operator/posts/$postId'
+      path: '/posts/$postId'
+      fullPath: '/operator/posts/$postId'
+      preLoaderRoute: typeof OperatorPostsPostIdRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/operator/clients/$clientId': {
+      id: '/operator/clients/$clientId'
+      path: '/clients/$clientId'
+      fullPath: '/operator/clients/$clientId'
+      preLoaderRoute: typeof OperatorClientsClientIdRouteImport
+      parentRoute: typeof OperatorRoute
+    }
   }
 }
+
+interface OperatorRouteChildren {
+  OperatorCalendarRoute: typeof OperatorCalendarRoute
+  OperatorInboxRoute: typeof OperatorInboxRoute
+  OperatorIndexRoute: typeof OperatorIndexRoute
+  OperatorClientsClientIdRoute: typeof OperatorClientsClientIdRoute
+  OperatorPostsPostIdRoute: typeof OperatorPostsPostIdRoute
+  OperatorClientsIndexRoute: typeof OperatorClientsIndexRoute
+  OperatorPostsIndexRoute: typeof OperatorPostsIndexRoute
+}
+
+const OperatorRouteChildren: OperatorRouteChildren = {
+  OperatorCalendarRoute: OperatorCalendarRoute,
+  OperatorInboxRoute: OperatorInboxRoute,
+  OperatorIndexRoute: OperatorIndexRoute,
+  OperatorClientsClientIdRoute: OperatorClientsClientIdRoute,
+  OperatorPostsPostIdRoute: OperatorPostsPostIdRoute,
+  OperatorClientsIndexRoute: OperatorClientsIndexRoute,
+  OperatorPostsIndexRoute: OperatorPostsIndexRoute,
+}
+
+const OperatorRouteWithChildren = OperatorRoute._addFileChildren(
+  OperatorRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -470,6 +645,7 @@ const rootRouteChildren: RootRouteChildren = {
   InboxRoute: InboxRoute,
   KanbanRoute: KanbanRoute,
   OnboardingRoute: OnboardingRoute,
+  OperatorRoute: OperatorRouteWithChildren,
   PostIdeasRoute: PostIdeasRoute,
   ReportRoute: ReportRoute,
   ScheduleRoute: ScheduleRoute,

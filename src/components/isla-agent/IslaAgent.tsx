@@ -93,6 +93,9 @@ export function IslaAgent() {
 
   const remainingFaqs = guide.faqs.filter((f) => !answered.includes(f.q));
 
+  // The Operator Panel is a separate area: the client's assistant never shows there.
+  if (pathname.startsWith("/operator")) return null;
+
   return (
     <>
       {/* Floating button */}

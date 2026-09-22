@@ -14,8 +14,9 @@ import { Button } from "@/components/ui/button";
 
 export type ChatLine = { id: string; role: "user" | "team"; text: string; at: string };
 
-const DeleteContext = createContext<(id: string) => void>(() => {});
+const DeleteContext = createContext<((id: string) => void) | null>(null);
 const ReadOnlyContext = createContext(false);
+const PeerContext = createContext("Isla team");
 
 function Stamp() {
   const readOnly = useContext(ReadOnlyContext);
@@ -35,7 +36,7 @@ function UserMessage() {
   const readOnly = useContext(ReadOnlyContext);
   return (
     <MessagePrimitive.Root className="group flex items-center justify-end gap-1">
-      {!readOnly && (
+      {!readOnly && onDelete && (
         <button
           type="button"
           onClick={() => onDelete(id)}
@@ -58,13 +59,14 @@ function UserMessage() {
   );
 }
 
-/** Answers are written by a person on the Isla team — nothing here is automated. */
+/** Messages from the other side of the conversation — written by a person, nothing here is automated. */
 function TeamMessage() {
+  const peer = useContext(PeerContext);
   return (
     <MessagePrimitive.Root className="flex justify-start">
       <div className="max-w-[85%] text-[13px] leading-relaxed text-foreground/90">
         <div className="mb-0.5 text-[9px] font-semibold uppercase tracking-widest text-primary">
-          Isla team
+          {peer}
         </div>
         <MessagePrimitive.Parts />
         <Stamp />
@@ -73,12 +75,14 @@ function TeamMessage() {
   );
 }
 
-const toMessage = (m: ChatLine): ThreadMessageLike => ({
-  id: m.id,
-  role: m.role === "user" ? "user" : "assistant",
-  content: [{ type: "text", text: m.text }],
-  createdAt: new Date(m.at),
-});
+const toMessage =
+  (viewer: ChatLine["role"]) =>
+  (m: ChatLine): ThreadMessageLike => ({
+    id: m.id,
+    role: m.role === viewer ? "user" : "assistant",
+    content: [{ type: "text", text: m.text }],
+    createdAt: new Date(m.at),
+  });
 
 /**
  * ChatGPT-style thread (assistant-ui) controlled by the caller. The user can send several
@@ -89,16 +93,28 @@ export function ChangeRequestChat({
   onSend,
   onDelete,
   readOnly = false,
+  viewer = "user",
+  peerLabel = "Isla team",
+  placeholder = "Describe the changes you'd like…",
+  emptyTitle = "No requests yet",
+  emptyHint = "Tell our team what you'd like to change.",
 }: {
   messages: ChatLine[];
   onSend?: (text: string) => void;
   onDelete?: (id: string) => void;
+  /** Whose side is on the right. The client platform is "user"; the Operator Panel is "team". */
+  viewer?: ChatLine["role"];
+  /** Label above the other side's messages. */
+  peerLabel?: string;
+  placeholder?: string;
+  emptyTitle?: string;
+  emptyHint?: string;
   /** Closed conversation (the post was already approved): no composer, no delete. */
   readOnly?: boolean;
 }) {
   const runtime = useExternalStoreRuntime<ChatLine>({
     messages,
-    convertMessage: toMessage,
+    convertMessage: toMessage(viewer),
     isRunning: false,
     onNew: async (message: AppendMessage) => {
       const text = message.content
@@ -112,16 +128,17 @@ export function ChangeRequestChat({
   return (
     <AssistantRuntimeProvider runtime={runtime}>
       <ReadOnlyContext.Provider value={readOnly}>
-      <DeleteContext.Provider value={onDelete ?? (() => {})}>
+      <PeerContext.Provider value={peerLabel}>
+      <DeleteContext.Provider value={onDelete ?? null}>
         <ThreadPrimitive.Root className="flex min-h-0 flex-1 flex-col">
           <ThreadPrimitive.Viewport className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
             <ThreadPrimitive.Empty>
               <div className="grid h-full place-items-center py-8 text-center">
                 <div>
                   <MessageSquare className="mx-auto size-7 text-muted-foreground/50" />
-                  <div className="mt-2 text-sm font-medium">No requests yet</div>
+                  <div className="mt-2 text-sm font-medium">{emptyTitle}</div>
                   <p className="mx-auto mt-1 max-w-[220px] text-xs text-muted-foreground">
-                    Tell our team what you'd like to change.
+                    {emptyHint}
                   </p>
                 </div>
               </div>
@@ -140,15 +157,15 @@ export function ChangeRequestChat({
             <ComposerPrimitive.Root className="flex items-end gap-1 rounded-xl border border-border bg-background/60 px-3 py-1.5 transition focus-within:border-primary/50">
               <ComposerPrimitive.Input
                 rows={1}
-                placeholder="Describe the changes you'd like…"
+                placeholder={placeholder}
                 className="max-h-32 min-h-0 flex-1 resize-none bg-transparent py-2 text-[13px] outline-none placeholder:text-muted-foreground"
               />
               <ComposerPrimitive.Send asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Send request"
-                  title="Send request"
+                  aria-label="Send message"
+                  title="Send message"
                   className="mb-0.5 size-7 shrink-0 text-muted-foreground hover:text-foreground"
                 >
                   <Send className="size-3.5" />
@@ -159,6 +176,7 @@ export function ChangeRequestChat({
           )}
         </ThreadPrimitive.Root>
       </DeleteContext.Provider>
+      </PeerContext.Provider>
       </ReadOnlyContext.Provider>
     </AssistantRuntimeProvider>
   );
