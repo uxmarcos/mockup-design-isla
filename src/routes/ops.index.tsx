@@ -9,7 +9,7 @@ import { OLink, useNewPost } from "@/components/operator/nav";
 import { EmptyBox, HealthBadge, PageBody, PageHeader, WorkspaceLogo } from "@/components/operator/ui";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/operator/")({
+export const Route = createFileRoute("/ops/")({
   component: OverviewPage,
 });
 
@@ -76,18 +76,18 @@ function OverviewPage() {
       />
       <PageBody>
         <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
-          <Kpi label="Clients" value={ws.seats.length} icon={Users} to="/operator/clients" />
-          <Kpi label="Open feedback" value={openFeedback} icon={MessageSquareText} to="/operator/inbox" search={{ type: "feedback" }} tone="alert" />
-          <Kpi label="New ideas" value={newIdeas} icon={Lightbulb} to="/operator/inbox" search={{ type: "ideas" }} />
-          <Kpi label="Awaiting approval" value={awaiting} icon={ClipboardCheck} to="/operator/posts" />
-          <Kpi label="No posts this week" value={noPosts.length} icon={CalendarDays} to="/operator/calendar" tone="alert" />
+          <Kpi label="Clients" value={ws.seats.length} icon={Users} to="/ops/clients" />
+          <Kpi label="Open feedback" value={openFeedback} icon={MessageSquareText} to="/ops/inbox" search={{ type: "feedback" }} tone="alert" />
+          <Kpi label="New ideas" value={newIdeas} icon={Lightbulb} to="/ops/inbox" search={{ type: "ideas" }} />
+          <Kpi label="Awaiting approval" value={awaiting} icon={ClipboardCheck} to="/ops/posts" />
+          <Kpi label="No posts this week" value={noPosts.length} icon={CalendarDays} to="/ops/calendar" tone="alert" />
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-2">
           <section className="overflow-hidden rounded-2xl border border-border bg-card">
             <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
               <h2 className="text-sm font-semibold">Needs your attention</h2>
-              <OLink to="/operator/inbox" className="text-xs font-medium text-primary hover:underline light:text-[#0B6A8F]">
+              <OLink to="/ops/inbox" className="text-xs font-medium text-primary hover:underline light:text-[#0B6A8F]">
                 Open inbox
               </OLink>
             </div>
@@ -130,7 +130,7 @@ function OverviewPage() {
             <section className="overflow-hidden rounded-2xl border border-border bg-card">
               <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
                 <h2 className="text-sm font-semibold">Client Health</h2>
-                <OLink to="/operator/clients" className="text-xs font-medium text-primary hover:underline light:text-[#0B6A8F]">
+                <OLink to="/ops/clients" className="text-xs font-medium text-primary hover:underline light:text-[#0B6A8F]">
                   All clients
                 </OLink>
               </div>
@@ -139,7 +139,7 @@ function OverviewPage() {
                   <li key={s.id} className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0">
                     <WorkspaceLogo workspace={s.workspace} />
                     <OLink
-                      to="/operator/clients/$clientId"
+                      to="/ops/clients/$clientId"
                       params={{ clientId: s.id }}
                       className="min-w-0 flex-1 leading-tight hover:underline"
                     >

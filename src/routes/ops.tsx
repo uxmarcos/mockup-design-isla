@@ -1,10 +1,10 @@
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { OperatorShell } from "@/components/operator/OperatorShell";
 
-export const Route = createFileRoute("/operator")({
+export const Route = createFileRoute("/ops")({
   head: () => ({
     meta: [
-      { title: "Isla Operator" },
+      { title: "Isla Ops" },
       { name: "description", content: "Customer success workspace for Isla operators." },
       { name: "robots", content: "noindex" },
     ],

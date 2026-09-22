@@ -1,17 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Clock, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LinkedInMark } from "@/components/LinkedInMark";
 import { postTitle, seatOf, type TeamDraft } from "@/lib/content-requests-store";
-import { addDays, sameDay, startOfWeek } from "@/lib/operator-data";
+import { addDays, sameDay, startOfWeek, type SeatAccount } from "@/lib/operator-data";
 import { inWeek, postDate, scheduledInWeek, useOperatorWorkspace } from "@/lib/operator-store";
 import { OLink, useNewPost } from "@/components/operator/nav";
-import { PageHeader, statusStyle, WorkspaceLogo } from "@/components/operator/ui";
+import { PageHeader, statusKey, WorkspaceLogo } from "@/components/operator/ui";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/operator/calendar")({
+export const Route = createFileRoute("/ops/calendar")({
   component: CalendarPage,
 });
 
@@ -19,25 +19,44 @@ function hhmm(d: Date) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-function Chip({ post, seatName, now }: { post: TeamDraft; seatName: string; now: Date }) {
-  const s = statusStyle(post, now);
+/** Matches the card colors from the real Isla calendar: blue = ready to post, purple = under review. */
+const CARD_STATUS: Record<ReturnType<typeof statusKey>, { accent: string; bg: string }> = {
+  draft: { accent: "border-l-border", bg: "bg-card" },
+  writing: { accent: "border-l-amber", bg: "bg-amber/10" },
+  awaiting: { accent: "border-l-violet", bg: "bg-violet/10" },
+  changes: { accent: "border-l-destructive", bg: "bg-destructive/10" },
+  approved: { accent: "border-l-primary", bg: "bg-primary/10" },
+  posted: { accent: "border-l-[#22C55E]", bg: "bg-[#22C55E]/10" },
+};
+
+/** The seat is already implied by the column, so the card only needs the post itself. */
+function Chip({ post, seat, now }: { post: TeamDraft; seat: SeatAccount; now: Date }) {
+  const s = CARD_STATUS[statusKey(post, now)];
   const d = postDate(post)!;
   return (
     <OLink
-      to="/operator/posts/$postId"
+      to="/ops/posts/$postId"
       params={{ postId: post.id }}
       search={{ from: "calendar" }}
-      title={`${seatName} · ${postTitle(post)}`}
-      className={cn("block rounded-md border px-1.5 py-1 text-[11px] leading-tight hover:brightness-110", s.cls)}
+      title={`${seat.name} · ${postTitle(post)}`}
+      className={cn(
+        "block rounded-lg border border-border/40 border-l-[2.5px] p-2 text-left transition-colors hover:brightness-110",
+        s.accent,
+        s.bg,
+      )}
     >
-      <span className="flex items-center gap-1">
-        <span className="grid size-3.5 shrink-0 place-items-center rounded-[3px] bg-[#0A66C2] text-[8px] font-bold text-white">
-          in
+      <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <LinkedInMark className="size-[12.8px]" />
+          <span className="text-[10px] font-semibold tabular-nums text-foreground/80">{hhmm(d)}</span>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-foreground/10 px-1.5 py-0.5 text-[8px] font-semibold text-foreground/70">
+          <Zap className="size-2.5" />
+          AUTO
+          <Clock className="size-2.5" />
         </span>
-        <span className="font-semibold">{hhmm(d)}</span>
-        <span className="ml-auto truncate font-medium opacity-80">{seatName.split(" ")[0]}</span>
-      </span>
-      <span className="mt-0.5 block truncate">{postTitle(post)}</span>
+      </div>
+      <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-foreground/90">{postTitle(post)}</p>
     </OLink>
   );
 }
@@ -117,7 +136,7 @@ function CalendarPage() {
 
       <div className="px-8 py-6">
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-          <div className="grid min-w-[1040px] grid-cols-[210px_repeat(7,minmax(0,1fr))]">
+          <div className="grid min-w-[1160px] grid-cols-[210px_repeat(7,minmax(148px,1fr))]">
             <div className="border-b border-border px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Seat
             </div>
@@ -150,7 +169,7 @@ function CalendarPage() {
                         <div className="flex items-center border-b border-border px-4 py-3 pl-9">
                           <div className="min-w-0 leading-tight">
                             <OLink
-                              to="/operator/clients/$clientId"
+                              to="/ops/clients/$clientId"
                               params={{ clientId: c.id }}
                               className="block truncate text-sm font-medium hover:underline"
                             >
@@ -171,28 +190,25 @@ function CalendarPage() {
                           </div>
                         </div>
                         {days.map((d) => {
-                          const cell = posts
-                            .filter((p) => sameDay(postDate(p)!, d))
-                            .sort((a, b) => postDate(a)!.getTime() - postDate(b)!.getTime());
+                          // A seat only ever has one post scheduled per day.
+                          const post = posts.find((p) => sameDay(postDate(p)!, d));
                           return (
-                            <div key={d.toISOString()} className="group relative min-h-[76px] space-y-1 border-b border-l border-border p-1.5">
-                              {cell.map((p) => (
-                                <Chip key={p.id} post={p} seatName={c.name} now={ws.now} />
-                              ))}
-                              <button
-                                onClick={() => {
-                                  const date = new Date(d);
-                                  date.setHours(10, 0, 0, 0);
-                                  openNewPost({ seatId: c.id, date });
-                                }}
-                                aria-label={`New post for ${c.name} on ${d.toDateString()}`}
-                                className={cn(
-                                  "grid w-full place-items-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100",
-                                  cell.length === 0 ? "absolute inset-1.5" : "h-5",
-                                )}
-                              >
-                                <Plus className="size-3.5" />
-                              </button>
+                            <div key={d.toISOString()} className="group relative min-h-[80px] border-b border-l border-border p-1.5">
+                              {post ? (
+                                <Chip post={post} seat={c} now={ws.now} />
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    const date = new Date(d);
+                                    date.setHours(10, 0, 0, 0);
+                                    openNewPost({ seatId: c.id, date });
+                                  }}
+                                  aria-label={`New post for ${c.name} on ${d.toDateString()}`}
+                                  className="absolute inset-1.5 grid place-items-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+                                >
+                                  <Plus className="size-3.5" />
+                                </button>
+                              )}
                             </div>
                           );
                         })}
@@ -206,10 +222,11 @@ function CalendarPage() {
 
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
           {[
-            ["Scheduled", "bg-[#22C55E]"],
-            ["Awaiting approval", "bg-violet"],
+            ["Ready to post", "bg-primary"],
+            ["Under review", "bg-violet"],
             ["Changes requested", "bg-destructive"],
             ["Idea to write", "bg-amber"],
+            ["Posted", "bg-[#22C55E]"],
             ["Draft", "bg-muted-foreground"],
           ].map(([l, dot]) => (
             <span key={l} className="flex items-center gap-1.5">

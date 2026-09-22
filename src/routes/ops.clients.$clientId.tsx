@@ -21,7 +21,7 @@ import {
   WorkspaceLogo,
 } from "@/components/operator/ui";
 
-export const Route = createFileRoute("/operator/clients/$clientId")({
+export const Route = createFileRoute("/ops/clients/$clientId")({
   component: ClientPage,
 });
 
@@ -69,7 +69,7 @@ function ClientPage() {
         <p className="mt-2 text-sm text-muted-foreground">
           This seat isn't part of your portfolio, or it doesn't exist.
         </p>
-        <OLink to="/operator/clients" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+        <OLink to="/ops/clients" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
           Back to clients
         </OLink>
       </div>
@@ -83,7 +83,7 @@ function ClientPage() {
       <div className="flex items-center justify-between gap-4 border-b border-border/70 px-8 py-4">
         <HubBreadcrumb
           page={seat.name}
-          root={{ label: "Clients", to: "/operator/clients" }}
+          root={{ label: "Clients", to: "/ops/clients" }}
           trail={[{ label: seat.workspace.name }]}
           className="min-w-0"
         />
@@ -148,7 +148,7 @@ function ClientPage() {
                 const d = postDate(p);
                 return (
                   <li key={p.id} className="border-b border-border last:border-b-0">
-                    <OLink to="/operator/posts/$postId" params={{ postId: p.id }} search={{ from: "clients" }} className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40">
+                    <OLink to="/ops/posts/$postId" params={{ postId: p.id }} search={{ from: "clients" }} className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40">
                       <span className="min-w-0 flex-1 truncate text-sm font-medium">{postTitle(p)}</span>
                       <span className="hidden text-xs text-muted-foreground sm:block">{d ? formatWhen(d) : "No date"}</span>
                       <StatusBadge post={p} now={ws.now} />
@@ -168,7 +168,7 @@ function ClientPage() {
                 const last = lastUserMessage(p);
                 return (
                   <li key={p.id} className="border-b border-border last:border-b-0">
-                    <OLink to="/operator/posts/$postId" params={{ postId: p.id }} search={{ from: "clients" }} className="block px-4 py-3.5 hover:bg-muted/40">
+                    <OLink to="/ops/posts/$postId" params={{ postId: p.id }} search={{ from: "clients" }} className="block px-4 py-3.5 hover:bg-muted/40">
                       <span className="flex items-center gap-3">
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">{postTitle(p)}</span>
                         <StatusBadge post={p} now={ws.now} />

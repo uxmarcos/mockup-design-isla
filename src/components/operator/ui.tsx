@@ -16,7 +16,7 @@ export function WorkspaceLogo({
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
-  if (failed) {
+  if (failed || !workspace.logo) {
     return (
       <span
         className={cn(
@@ -36,6 +36,31 @@ export function WorkspaceLogo({
       onError={() => setFailed(true)}
       className={cn("size-8 shrink-0 rounded-md bg-white object-cover", className)}
     />
+  );
+}
+
+/**
+ * A seat is a person — shown as initials on a round avatar, distinct from a workspace's square
+ * logo. Kept neutral on purpose: in the Clients screen the only color should come from the
+ * workspace logo and the health badges, not from the seats themselves.
+ */
+export function SeatAvatar({ seat, className }: { seat: { id: string; name: string }; className?: string }) {
+  const initials = seat.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+  return (
+    <span
+      className={cn(
+        "grid size-8 shrink-0 place-items-center rounded-full bg-neutral-700 text-[11px] font-bold text-white",
+        className,
+      )}
+      aria-hidden
+    >
+      {initials}
+    </span>
   );
 }
 
@@ -121,11 +146,13 @@ export function PageHeader({
   subtitle,
   actions,
   hideNewPost,
+  hideBell,
 }: {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
   hideNewPost?: boolean;
+  hideBell?: boolean;
 }) {
   const ws = useOperatorWorkspace();
   const openNewPost = useNewPost();
@@ -137,18 +164,20 @@ export function PageHeader({
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-2">
         {actions}
-        <OLink
-          to="/operator/inbox"
-          title="Inbox"
-          className="relative grid size-9 place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground light:hover:bg-black/5"
-        >
-          <Bell className="size-4" />
-          {ws.counts.unread > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
-              {ws.counts.unread}
-            </span>
-          )}
-        </OLink>
+        {!hideBell && (
+          <OLink
+            to="/ops/inbox"
+            title="Inbox"
+            className="relative grid size-9 place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground light:hover:bg-black/5"
+          >
+            <Bell className="size-4" />
+            {ws.counts.unread > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">
+                {ws.counts.unread}
+              </span>
+            )}
+          </OLink>
+        )}
         {!hideNewPost && (
           <Button size="sm" className="text-white" onClick={() => openNewPost()}>
             <Plus className="mr-1 size-4" />

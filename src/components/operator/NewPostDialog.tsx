@@ -75,7 +75,7 @@ export function NewPostDialog({
     if (!seatId) return;
     if (source !== BLANK) {
       onOpenChange(false);
-      go("/operator/posts/$postId", { params: { postId: source } });
+      go("/ops/posts/$postId", { params: { postId: source } });
       return;
     }
     const date = fromInputValue(when);
@@ -85,7 +85,7 @@ export function NewPostDialog({
     }
     const id = createOperatorPost({ seatId, author: operator.name, suggestedAt: date });
     onOpenChange(false);
-    go("/operator/posts/$postId", { params: { postId: id } });
+    go("/ops/posts/$postId", { params: { postId: id } });
   };
 
   return (

@@ -7,7 +7,9 @@ import {
   addDays,
   startOfWeek,
   type Operator,
+  type Seat,
   type SeatAccount,
+  type Workspace,
 } from "@/lib/operator-data";
 import { postTitle, seatOf, useAllContent, type TeamDraft } from "@/lib/content-requests-store";
 
@@ -17,6 +19,10 @@ const EVENT = "isla:operator-change";
 const SESSION_KEY = "isla.operator.session.v1";
 const READ_KEY = "isla.operator.read.v1";
 const SEAT_KEY = "isla.operator.seats.v1";
+const WORKSPACE_KEY = "isla.operator.workspaces.v1";
+const CUSTOM_SEAT_KEY = "isla.operator.customSeats.v1";
+const CUSTOM_WORKSPACE_KEY = "isla.operator.customWorkspaces.v1";
+const REMOVED_SEAT_KEY = "isla.operator.removedSeats.v1";
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -66,6 +72,28 @@ function useSeatOverrides() {
   return useStored<Record<string, SeatOverride>>(SEAT_KEY, {});
 }
 
+/** Editable workspace fields — everything else (name, logo, since) stays fixed. */
+export type WorkspaceOverride = { plan?: string; timezone?: string; language?: string; contactEmail?: string };
+
+function useWorkspaceOverrides() {
+  return useStored<Record<string, WorkspaceOverride>>(WORKSPACE_KEY, {});
+}
+
+/** Seats added from the panel (on top of the seeded ones), kept as full records. */
+function useCustomSeats() {
+  return useStored<Seat[]>(CUSTOM_SEAT_KEY, []);
+}
+
+/** Workspaces (clients) added from the panel, on top of the seeded ones. */
+function useCustomWorkspaces() {
+  return useStored<Workspace[]>(CUSTOM_WORKSPACE_KEY, []);
+}
+
+/** Ids of seats removed from the panel — seeded seats can't be deleted outright, so they're hidden instead. */
+function useRemovedSeats() {
+  return useStored<string[]>(REMOVED_SEAT_KEY, []);
+}
+
 /* ------------------------------ derived helpers ------------------------------ */
 
 /** The date a post is (or would be) published on. */
@@ -75,8 +103,13 @@ export function postDate(p: TeamDraft): Date | null {
 }
 
 export const isApproved = (p: TeamDraft) => p.status === "approved";
-export const isPosted = (p: TeamDraft, now = new Date()) =>
-  p.status === "approved" && !!p.scheduledAt && new Date(p.scheduledAt) < now;
+
+/** Manual overrides (from the post editor) win either way over the scheduled-date guess. */
+export function isPosted(p: TeamDraft, now = new Date()) {
+  if (p.status !== "approved") return false;
+  if (p.postedOverride !== undefined) return p.postedOverride;
+  return !!p.scheduledAt && new Date(p.scheduledAt) < now;
+}
 
 export function inWeek(date: Date | null, weekStart: Date) {
   return !!date && date >= weekStart && date < addDays(weekStart, 7);
@@ -103,6 +136,9 @@ export type SeatStats = {
 };
 
 export const FEEDBACK_SLA_HOURS = 4;
+
+/** How far back an approval still shows up in the inbox's history. */
+export const APPROVAL_HISTORY_DAYS = 21;
 
 export function lastUserMessage(p: TeamDraft) {
   return [...(p.thread ?? [])].reverse().find((m) => m.role === "user") ?? null;
@@ -164,7 +200,8 @@ export function seatStats(seat: SeatAccount, posts: TeamDraft[], weekStart: Date
 
 /* ------------------------------- notifications ------------------------------- */
 
-export type NotificationType = "idea" | "feedback" | "approval" | "gap" | "due";
+/** Notifications only ever come from something a seat did — approved a post, asked for changes, or sent an idea. */
+export type NotificationType = "idea" | "feedback" | "approval";
 
 export type OpNotification = {
   key: string;
@@ -187,7 +224,6 @@ export function deriveNotifications(
 ): OpNotification[] {
   const out: OpNotification[] = [];
   const name = (id: string) => seats.find((s) => s.id === id)?.name ?? id;
-  const weekStart = startOfWeek(now);
 
   for (const p of posts) {
     const seatId = seatOf(p);
@@ -225,8 +261,9 @@ export function deriveNotifications(
         read: seen || readKeys.has(`fb-${p.id}-${last.id}`),
       });
     }
-    if (p.status === "approved" && p.approvedAt && now.getTime() - new Date(p.approvedAt).getTime() < 3 * DAY_MS) {
+    if (p.status === "approved" && p.approvedAt && now.getTime() - new Date(p.approvedAt).getTime() < APPROVAL_HISTORY_DAYS * DAY_MS) {
       const key = `ap-${p.id}`;
+      const approvedHoursAgo = (now.getTime() - new Date(p.approvedAt).getTime()) / 3600_000;
       out.push({
         key,
         type: "approval",
@@ -236,46 +273,10 @@ export function deriveNotifications(
         title: `${name(seatId)} approved a post`,
         detail: `${postTitle(p)} · scheduled for ${new Date(p.scheduledAt!).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`,
         at: p.approvedAt,
-        read: readKeys.has(key),
+        // Older approvals are assumed seen — only recent ones count toward the unread badge.
+        read: readKeys.has(key) || approvedHoursAgo > 48,
       });
     }
-    if (["draft", "writing", "awaiting", "changes"].includes(p.status)) {
-      const when = postDate(p);
-      if (when && when > now && when.getTime() - now.getTime() < DAY_MS) {
-        const key = `due-${p.id}`;
-        out.push({
-          key,
-          type: "due",
-          priority: 1,
-          seatId,
-          postId: p.id,
-          title: `${name(seatId)}: publishing soon without approval`,
-          detail: postTitle(p),
-          at: when.toISOString(),
-          read: readKeys.has(key),
-        });
-      }
-    }
-  }
-
-  for (const c of seats) {
-    if (c.cadence <= 0) continue;
-    const scheduled = scheduledInWeek(
-      posts.filter((p) => seatOf(p) === c.id),
-      weekStart,
-    ).length;
-    if (scheduled >= c.cadence) continue;
-    const key = `gap-${c.id}-${weekStart.toISOString().slice(0, 10)}`;
-    out.push({
-      key,
-      type: "gap",
-      priority: scheduled === 0 ? 1 : 2,
-      seatId: c.id,
-      title: scheduled === 0 ? `${c.name} has no posts this week` : `${c.name} is below the cadence`,
-      detail: `${scheduled} of ${c.cadence} posts scheduled for this week`,
-      at: weekStart.toISOString(),
-      read: readKeys.has(key),
-    });
   }
 
   return out.sort((a, b) => a.priority - b.priority || b.at.localeCompare(a.at));
@@ -288,6 +289,10 @@ export function useOperatorWorkspace() {
   const all = useAllContent();
   const { operator, setOperatorId } = useOperatorSession();
   const [overrides, setOverrides] = useSeatOverrides();
+  const [workspaceOverrides, setWorkspaceOverrides] = useWorkspaceOverrides();
+  const [customSeats, setCustomSeats] = useCustomSeats();
+  const [customWorkspaces, setCustomWorkspaces] = useCustomWorkspaces();
+  const [removedSeatIds, setRemovedSeatIds] = useRemovedSeats();
   const [readList, setReadList] = useStored<string[]>(READ_KEY, []);
   const [now, setNow] = useState(() => new Date());
 
@@ -296,14 +301,21 @@ export function useOperatorWorkspace() {
     return () => window.clearInterval(id);
   }, []);
 
-  const workspaces = useMemo(() => WORKSPACES.filter((w) => w.operatorId === operator.id), [operator.id]);
+  const workspaces = useMemo(
+    () =>
+      [...WORKSPACES, ...customWorkspaces]
+        .filter((w) => w.operatorId === operator.id)
+        .map((w) => ({ ...w, ...workspaceOverrides[w.id] })),
+    [operator.id, customWorkspaces, workspaceOverrides],
+  );
   const seats = useMemo<SeatAccount[]>(
     () =>
-      SEATS.flatMap((s) => {
+      [...SEATS, ...customSeats].flatMap((s) => {
+        if (removedSeatIds.includes(s.id)) return [];
         const workspace = workspaces.find((w) => w.id === s.workspaceId);
         return workspace ? [{ ...s, workspace, cadence: overrides[s.id]?.cadence ?? s.cadence }] : [];
       }),
-    [workspaces, overrides],
+    [workspaces, customSeats, overrides, removedSeatIds],
   );
   const seatIds = useMemo(() => new Set(seats.map((s) => s.id)), [seats]);
   const posts = useMemo(() => all.drafts.filter((p) => seatIds.has(seatOf(p))), [all.drafts, seatIds]);
@@ -324,12 +336,70 @@ export function useOperatorWorkspace() {
     [overrides, setOverrides],
   );
 
+  const setWorkspaceOverride = useCallback(
+    (workspaceId: string, patch: WorkspaceOverride) =>
+      setWorkspaceOverrides({ ...workspaceOverrides, [workspaceId]: { ...workspaceOverrides[workspaceId], ...patch } }),
+    [workspaceOverrides, setWorkspaceOverrides],
+  );
+
+  /** Adds a new client (workspace) to the operator's own portfolio. */
+  const addWorkspace = useCallback(
+    (input: { name: string; plan: string; timezone: string; language: string; contactEmail: string; logo?: string }) => {
+      const workspace: Workspace = {
+        id: `ws-${Date.now()}`,
+        name: input.name,
+        operatorId: operator.id,
+        logo: input.logo ?? "",
+        plan: input.plan,
+        timezone: input.timezone,
+        language: input.language,
+        contactEmail: input.contactEmail,
+        since: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+      };
+      setCustomWorkspaces([...customWorkspaces, workspace]);
+      return workspace.id;
+    },
+    [customWorkspaces, setCustomWorkspaces, operator.id],
+  );
+
+  /** Adds a new person at a workspace — content is always written and published per seat. */
+  const addSeat = useCallback(
+    (workspaceId: string, input: { name: string; title: string; email: string; cadence: number }) => {
+      const seat: Seat = {
+        id: `${workspaceId}-${Date.now()}`,
+        workspaceId,
+        name: input.name,
+        title: input.title,
+        email: input.email,
+        cadence: input.cadence,
+        brandDna: "",
+        icp: "",
+      };
+      setCustomSeats([...customSeats, seat]);
+      return seat.id;
+    },
+    [customSeats, setCustomSeats],
+  );
+
+  /** Removes a seat from the portfolio. Seeded seats are hidden rather than deleted from the source data. */
+  const removeSeat = useCallback(
+    (seatId: string) => setRemovedSeatIds([...removedSeatIds, seatId]),
+    [removedSeatIds, setRemovedSeatIds],
+  );
+
+  const gaps = useMemo(() => {
+    const weekStart = startOfWeek(now);
+    return seats.filter(
+      (s) => s.cadence > 0 && scheduledInWeek(posts.filter((p) => seatOf(p) === s.id), weekStart).length < s.cadence,
+    ).length;
+  }, [seats, posts, now]);
+
   const unread = notifications.filter((n) => !n.read);
   const counts = {
     unread: unread.length,
     ideas: notifications.filter((n) => n.type === "idea" && !n.read).length,
     feedback: notifications.filter((n) => n.type === "feedback" && !n.read).length,
-    gaps: notifications.filter((n) => n.type === "gap").length,
+    gaps,
   };
 
   return {
@@ -346,6 +416,10 @@ export function useOperatorWorkspace() {
     overrides,
     markRead,
     setSeatOverride,
+    setWorkspaceOverride,
+    addWorkspace,
+    addSeat,
+    removeSeat,
     getSeat: (id: string) => seats.find((s) => s.id === id),
   };
 }

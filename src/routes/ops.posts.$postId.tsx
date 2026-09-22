@@ -21,18 +21,20 @@ import { ChangeRequestChat } from "@/components/ChangeRequestChat";
 import { HubBreadcrumb } from "@/components/content/HubBreadcrumb";
 import { LinkedInPreviewModal, ScheduleModal } from "@/components/content/PostModals";
 import {
+  markAsNotPosted,
+  markAsPosted,
   markOperatorSeen,
   operatorReply,
   saveOperatorDraft,
   sendForApproval,
   seatOf,
 } from "@/lib/content-requests-store";
-import { postDate, useOperatorWorkspace } from "@/lib/operator-store";
+import { isPosted, postDate, useOperatorWorkspace } from "@/lib/operator-store";
 import { OLink, useGo } from "@/components/operator/nav";
 import { fileToPostImage, formatWhen, MAX_POST_IMAGE_BYTES, timeAgo } from "@/components/operator/ui";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/operator/posts/$postId")({
+export const Route = createFileRoute("/ops/posts/$postId")({
   validateSearch: z.object({ from: z.enum(["calendar", "inbox", "posts", "clients"]).optional() }),
   component: PostEditorPage,
 });
@@ -40,10 +42,10 @@ export const Route = createFileRoute("/operator/posts/$postId")({
 const MAX_CHARS = 3000;
 
 const ROOTS = {
-  calendar: { label: "Calendar", to: "/operator/calendar" },
-  inbox: { label: "Inbox", to: "/operator/inbox" },
-  clients: { label: "Clients", to: "/operator/clients" },
-  posts: { label: "Posts", to: "/operator/posts" },
+  calendar: { label: "Calendar", to: "/ops/calendar" },
+  inbox: { label: "Inbox", to: "/ops/inbox" },
+  clients: { label: "Clients", to: "/ops/clients" },
+  posts: { label: "Posts", to: "/ops/posts" },
 } as const;
 
 function ToolbarBtn({ children }: { children: React.ReactNode }) {
@@ -81,7 +83,7 @@ function StatusCard({
       <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
         {icon} {title}
       </div>
-      <p className="mt-1.5 text-xs text-muted-foreground">{children}</p>
+      <div className="mt-1.5 text-xs text-muted-foreground">{children}</div>
     </div>
   );
 }
@@ -120,7 +122,7 @@ function PostEditorPage() {
       <div className="mx-auto max-w-[600px] py-20 text-center">
         <h1 className="text-xl font-semibold">No access</h1>
         <p className="mt-2 text-sm text-muted-foreground">This post isn't part of your portfolio, or it doesn't exist.</p>
-        <OLink to="/operator/posts" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+        <OLink to="/ops/posts" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
           Back to posts
         </OLink>
       </div>
@@ -152,7 +154,7 @@ function PostEditorPage() {
   const doSend = (when: Date) => {
     const n = sendForApproval(post.id, { body, image, suggestedAt: when }, author);
     toast.success(`Version ${n} sent to ${seat.name} for approval`);
-    go("/operator/posts");
+    go("/ops/posts");
   };
 
   const send = () => {
@@ -352,8 +354,28 @@ function PostEditorPage() {
               </StatusCard>
             )}
             {post.status === "approved" && (
-              <StatusCard tone="green" icon={<CheckCircle2 className="size-4 text-[#22C55E] light:text-green-700" />} title={`Approved by ${first}`}>
+              <StatusCard
+                tone="green"
+                icon={<CheckCircle2 className="size-4 text-[#22C55E] light:text-green-700" />}
+                title={isPosted(post, ws.now) ? "Posted" : `Approved by ${first}`}
+              >
                 {post.scheduledAt ? `Scheduled for ${formatWhen(new Date(post.scheduledAt))}.` : "Scheduled."}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => {
+                    if (isPosted(post, ws.now)) {
+                      markAsNotPosted(post.id);
+                      toast.success("Marked as not posted");
+                    } else {
+                      markAsPosted(post.id);
+                      toast.success("Marked as posted");
+                    }
+                  }}
+                >
+                  {isPosted(post, ws.now) ? "Mark as not posted" : "Mark as posted"}
+                </Button>
               </StatusCard>
             )}
 

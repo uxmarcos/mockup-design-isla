@@ -8,10 +8,12 @@ import {
   ChevronRight,
   CircleDashed,
   ClipboardCheck,
+  Clock,
   Globe,
   Lightbulb,
   Plus,
   XCircle,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Sidebar, useSidebarState } from "@/components/analytics/Sidebar";
+import { LinkedInMark } from "@/components/LinkedInMark";
 import { draftTitle, useContentStore } from "@/lib/content-requests-store";
+import { CURRENT_USER } from "@/lib/current-user";
 import { CALENDAR_SAMPLES } from "@/lib/post-samples";
 import { cn } from "@/lib/utils";
 
@@ -58,41 +62,41 @@ type Status = "isla-review" | "your-review" | "ready" | "posted" | "missed";
 
 const STATUS: Record<
   Status,
-  { label: string; icon: LucideIcon; color: string; border: string; bg: string }
+  { label: string; icon: LucideIcon; color: string; accent: string; bg: string }
 > = {
   "isla-review": {
     label: "Isla Review",
     icon: CircleDashed,
     color: "text-amber",
-    border: "border-border/70",
+    accent: "border-l-amber",
     bg: "bg-card",
   },
   "your-review": {
     label: "Your Review",
     icon: CheckCircle2,
     color: "text-violet",
-    border: "border-violet/40",
+    accent: "border-l-violet",
     bg: "bg-violet/5",
   },
   ready: {
     label: "Ready to post",
     icon: Globe,
     color: "text-primary",
-    border: "border-primary/60",
+    accent: "border-l-primary",
     bg: "bg-primary/10",
   },
   posted: {
     label: "Posted",
     icon: CheckCircle2,
     color: "text-[#22C55E]",
-    border: "border-[#22C55E]/50",
+    accent: "border-l-[#22C55E]",
     bg: "bg-[#22C55E]/8",
   },
   missed: {
     label: "Missed",
     icon: XCircle,
     color: "text-destructive",
-    border: "border-destructive/50",
+    accent: "border-l-destructive",
     bg: "bg-destructive/8",
   },
 };
@@ -160,17 +164,8 @@ function postsFor(d: Date, today: Date): Post[] {
 
 const WEEKDAYS_SUN = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
-function LinkedinMark() {
-  return (
-    <span className="grid size-4 shrink-0 place-items-center rounded-[3px] bg-[#0A66C2] text-[7px] font-bold text-white">
-      in
-    </span>
-  );
-}
-
 function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
   const s = STATUS[post.status];
-  const Icon = s.icon;
   return (
     <button
       type="button"
@@ -179,23 +174,28 @@ function PostCard({ post, onClick }: { post: Post; onClick: () => void }) {
         onClick();
       }}
       className={cn(
-        "w-full rounded-[6px] border px-2 py-1.5 text-left transition-colors hover:brightness-125",
-        s.border,
+        "w-full rounded-lg border border-border/40 border-l-[2.5px] p-2 text-left transition-colors hover:brightness-110",
+        s.accent,
         s.bg,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <LinkedinMark />
-        <span className="text-[10px] tabular-nums text-foreground/80">{post.time}</span>
-        <Icon className={cn("size-3", s.color)} />
-      </div>
-      <div className="mt-1 flex items-start gap-1.5">
-        {post.image && (
-          <img src={post.image} alt="" className="mt-0.5 size-7 shrink-0 rounded-[3px] object-cover" />
-        )}
-        <span className="line-clamp-2 text-[10.5px] leading-snug text-foreground/90">
-          {post.title}
+      <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <LinkedInMark className="size-[12.8px]" />
+          <span className="text-[10px] font-semibold tabular-nums text-foreground/80">{post.time}</span>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-foreground/10 px-1.5 py-0.5 text-[8px] font-semibold text-foreground/70">
+          <Zap className="size-2.5" />
+          AUTO
+          <Clock className="size-2.5" />
         </span>
+      </div>
+      <p className="mt-1.5 line-clamp-2 text-[11px] leading-snug text-foreground/90">{post.title}</p>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className="grid size-4 shrink-0 place-items-center rounded-full bg-neutral-700 text-[7px] font-bold text-white">
+          {CURRENT_USER.initials}
+        </span>
+        <span className="truncate text-[10px] text-foreground/70">{CURRENT_USER.name}</span>
       </div>
     </button>
   );

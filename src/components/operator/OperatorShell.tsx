@@ -54,33 +54,33 @@ export function OperatorShell({ children }: { children: ReactNode }) {
   };
 
   const items: NavItem[] = [
-    { label: "Overview", to: "/operator", icon: HomeIcon, active: path === "/operator" },
+    { label: "Overview", to: "/ops", icon: HomeIcon, active: path === "/ops" },
     {
       label: "Inbox",
-      to: "/operator/inbox",
+      to: "/ops/inbox",
       icon: lucide(Inbox),
       badge: ws.counts.unread,
-      active: path === "/operator/inbox",
+      active: path === "/ops/inbox",
     },
     {
       label: "Clients",
-      to: "/operator/clients",
+      to: "/ops/clients",
       icon: lucide(Users),
-      active: path.startsWith("/operator/clients"),
+      active: path.startsWith("/ops/clients"),
     },
     {
       label: "Calendar",
-      to: "/operator/calendar",
+      to: "/ops/calendar",
       icon: CalendarIcon,
       badge: ws.counts.gaps,
       tone: "alert",
-      active: path === "/operator/calendar",
+      active: path === "/ops/calendar",
     },
     {
       label: "Posts",
-      to: "/operator/posts",
+      to: "/ops/posts",
       icon: lucide(FileText),
-      active: path.startsWith("/operator/posts"),
+      active: path.startsWith("/ops/posts"),
     },
   ];
 
@@ -114,7 +114,7 @@ export function OperatorShell({ children }: { children: ReactNode }) {
                 <>
                   <IslaWordmark className="h-6 w-auto text-foreground light:text-neutral-900" />
                   <span className="rounded-full border border-violet/40 bg-violet/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-violet">
-                    Operator
+                    Ops
                   </span>
                 </>
               )}

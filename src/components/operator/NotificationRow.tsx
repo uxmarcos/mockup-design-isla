@@ -1,17 +1,15 @@
-import { CalendarX2, CheckCircle2, Clock, Lightbulb, MessageSquareText, type LucideIcon } from "lucide-react";
+import { CheckCircle2, Lightbulb, MessageSquareText, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SeatAccount } from "@/lib/operator-data";
 import type { NotificationType, OpNotification } from "@/lib/operator-store";
-import { useGo, useNewPost } from "@/components/operator/nav";
+import { useGo } from "@/components/operator/nav";
 import { timeAgo, WorkspaceLogo } from "@/components/operator/ui";
 
 const TYPE: Record<NotificationType, { icon: LucideIcon; cls: string; action: string; label: string }> = {
   idea: { icon: Lightbulb, cls: "text-amber light:text-[#7A5200]", action: "Start draft", label: "Idea" },
   feedback: { icon: MessageSquareText, cls: "text-destructive", action: "Review feedback", label: "Feedback" },
   approval: { icon: CheckCircle2, cls: "text-[#22C55E] light:text-green-700", action: "View post", label: "Approval" },
-  gap: { icon: CalendarX2, cls: "text-amber light:text-[#7A5200]", action: "Create post", label: "Calendar gap" },
-  due: { icon: Clock, cls: "text-destructive", action: "Open post", label: "Due soon" },
 };
 
 export const NOTIFICATION_LABEL = (t: NotificationType) => TYPE[t].label;
@@ -26,13 +24,11 @@ export function NotificationRow({
   onRead: (key: string) => void;
 }) {
   const go = useGo();
-  const openNewPost = useNewPost();
   const t = TYPE[n.type];
 
   const act = () => {
     onRead(n.key);
-    if (n.type === "gap") openNewPost({ seatId: n.seatId });
-    else if (n.postId) go("/operator/posts/$postId", { params: { postId: n.postId }, search: { from: "inbox" } });
+    if (n.postId) go("/ops/posts/$postId", { params: { postId: n.postId }, search: { from: "inbox" } });
   };
 
   return (
@@ -54,9 +50,7 @@ export function NotificationRow({
           {n.detail}
         </p>
       </div>
-      <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
-        {n.type === "gap" ? "This week" : timeAgo(n.at)}
-      </span>
+      <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">{timeAgo(n.at)}</span>
       <Button variant="outline" size="sm" onClick={act}>
         {t.action}
       </Button>

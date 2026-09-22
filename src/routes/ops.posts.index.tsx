@@ -6,7 +6,7 @@ import { postDate, useOperatorWorkspace } from "@/lib/operator-store";
 import { OLink } from "@/components/operator/nav";
 import { EmptyBox, formatWhen, PageBody, PageHeader, StatusBadge, statusKey, WorkspaceLogo } from "@/components/operator/ui";
 
-export const Route = createFileRoute("/operator/posts/")({
+export const Route = createFileRoute("/ops/posts/")({
   component: PostsPage,
 });
 
@@ -82,7 +82,7 @@ function PostsPage() {
               return (
                 <li key={p.id} className="border-b border-border last:border-b-0">
                   <OLink
-                    to="/operator/posts/$postId"
+                    to="/ops/posts/$postId"
                     params={{ postId: p.id }}
                     className="flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40"
                   >

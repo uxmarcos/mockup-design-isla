@@ -68,6 +68,8 @@ export type TeamDraft = {
   };
   /** When the operator last looked at the client's messages on this post. */
   operatorSeenAt?: string;
+  /** Manual control over an approved post's posted state — wins over the scheduled-date guess either way. */
+  postedOverride?: boolean;
 };
 
 export type ContentState = { requests: IdeaRequest[]; drafts: TeamDraft[] };
@@ -144,13 +146,15 @@ function seed(): ContentState {
 
   const approved = (seatId: string, n: number, week: number, day: number, hour: number, min = 0) => {
     const when = weekAt(week, day, hour, min);
+    // Approved a day or two before the slot — but never in the future, even for older, already-posted weeks.
+    const approvedAtMs = Math.min(new Date(when).getTime() - (20 + (n % 5) * 6) * 3600_000, Date.now() - 3600_000);
     drafts.push(
       post(seatId, n, {
         status: "approved",
         suggestedAt: when,
         scheduledAt: when,
-        approvedAt: ago(20 + n * 3),
-        preparedAt: ago(48 + n),
+        approvedAt: new Date(approvedAtMs).toISOString(),
+        preparedAt: new Date(approvedAtMs - 24 * 3600_000).toISOString(),
       }),
     );
   };
@@ -219,12 +223,18 @@ function seed(): ContentState {
     },
   );
 
-  // Lumen.io — fully covered this week.
+  // Lumen.io — fully covered this week, plus a few weeks of posting history.
   approved("lumen", 1, 0, 1, 9);
   approved("lumen", 2, 0, 2, 11, 30);
   approved("lumen", 3, 0, 4, 8, 30);
   approved("lumen", 4, 1, 2, 10);
   drafts.push(post("lumen", 5, { suggestedAt: weekAt(1, 0, 9), preparedAt: ago(6) }));
+  approved("lumen", 6, -1, 0, 9);
+  approved("lumen", 7, -1, 2, 11, 30);
+  approved("lumen", 8, -1, 4, 8, 30);
+  approved("lumen", 9, -2, 1, 9);
+  approved("lumen", 10, -2, 3, 14);
+  approved("lumen", 11, -3, 2, 9, 30);
 
   // Brightpath — one scheduled, one waiting on the operator to address feedback.
   approved("brightpath", 1, 0, 3, 9);
@@ -257,10 +267,14 @@ function seed(): ContentState {
   // Orbital Labs — an idea nobody has started yet, nothing scheduled.
   idea("orbital", 1, "How we onboard enterprise customers in 10 days", "Please keep the tone technical but friendly.", 5);
 
-  // Kestrel Analytics — on target.
+  // Kestrel Analytics — on target, with a few weeks of posting history.
   approved("kestrel", 1, 0, 1, 14);
   approved("kestrel", 2, 0, 3, 9, 30);
   drafts.push(post("kestrel", 3, { suggestedAt: weekAt(0, 4, 10), preparedAt: ago(20) }));
+  approved("kestrel", 4, -1, 1, 14);
+  approved("kestrel", 5, -1, 4, 9, 30);
+  approved("kestrel", 6, -2, 2, 14);
+  approved("kestrel", 7, -3, 1, 9, 30);
 
   // Pine & Co — a private draft in progress and one waiting for the client; nothing scheduled.
   const pineText =
@@ -283,23 +297,39 @@ function seed(): ContentState {
   });
   drafts.push(post("pine", 2, { suggestedAt: weekAt(0, 3, 15), preparedAt: ago(30) }));
 
-  // Vantage Cloud — almost there (3 of 4).
+  // Vantage Cloud — almost there (3 of 4), plus a few weeks of posting history.
   approved("vantage", 1, 0, 0, 9);
   approved("vantage", 2, 0, 1, 9);
   approved("vantage", 3, 0, 3, 9);
   approved("vantage", 4, 1, 1, 9);
+  approved("vantage", 5, -1, 0, 9);
+  approved("vantage", 6, -1, 2, 9);
+  approved("vantage", 7, -1, 4, 15);
+  approved("vantage", 8, -2, 1, 9);
+  approved("vantage", 9, -2, 3, 9);
+  approved("vantage", 10, -3, 2, 9);
 
-  // Helio Health — one scheduled, one new idea with a note from the client.
+  // Helio Health — one scheduled, one new idea with a note from the client, plus posting history.
   approved("helio", 1, 0, 2, 16);
   idea("helio", 2, "What our clinics learned about patient onboarding", "Please mention the pilot with the 3 clinics.", 26);
+  approved("helio", 3, -1, 1, 16);
+  approved("helio", 4, -2, 2, 16);
+  approved("helio", 5, -3, 1, 16);
 
   // More Nortex founders: each seat has its own content and cadence.
   approved("nortex-ana", 1, 0, 1, 10);
   approved("nortex-ana", 2, 0, 3, 11);
   idea("nortex-diego", 1, "What breaking up our monolith taught us about hiring", "Focus on the hiring angle, not the tech.", 7);
+  approved("nortex-ana", 3, -1, 1, 10);
+  approved("nortex-ana", 4, -1, 3, 11);
+  approved("nortex-ana", 5, -2, 2, 10);
+  approved("nortex-ana", 6, -3, 1, 10);
 
   // A second seat at Lumen.io and at Vantage Cloud.
   approved("lumen-tiago", 1, 0, 2, 9);
+  approved("lumen-tiago", 2, -1, 2, 9);
+  approved("lumen-tiago", 3, -2, 3, 9);
+  approved("lumen-tiago", 4, -3, 2, 9);
   approved("vantage-elisa", 1, 0, 2, 15);
   const elisaFeedback = post("vantage-elisa", 2, {
     status: "changes",
@@ -326,6 +356,9 @@ function seed(): ContentState {
     status: "changes",
     draftId: elisaFeedback.id,
   });
+  approved("vantage-elisa", 3, -1, 1, 15);
+  approved("vantage-elisa", 4, -2, 2, 15);
+  approved("vantage-elisa", 5, -3, 1, 15);
 
   // Another operator's portfolio: must stay invisible to Laura.
   approved("aurora", 1, 0, 0, 10);
@@ -657,6 +690,25 @@ export function markOperatorSeen(id: string) {
     drafts: s.drafts.map((d) => (d.id === id ? { ...d, operatorSeenAt: new Date().toISOString() } : d)),
   });
 }
+
+/**
+ * Manual override for control: an approved post can be marked posted right away instead of
+ * waiting for its scheduled time to pass (e.g. it was actually published outside the tool).
+ */
+function setPostedOverride(id: string, value: boolean) {
+  const s = load();
+  const draft = s.drafts.find((d) => d.id === id);
+  if (!draft || draft.status !== "approved") return;
+  save({
+    ...s,
+    drafts: s.drafts.map((d) => (d.id === id ? { ...d, postedOverride: value } : d)),
+  });
+}
+
+export const markAsPosted = (id: string) => setPostedOverride(id, true);
+
+/** Reopens a post that was marked posted (by hand or because its date passed) back to "not posted yet". */
+export const markAsNotPosted = (id: string) => setPostedOverride(id, false);
 
 /* --------------------------------- hooks --------------------------------- */
 
