@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { CalendarDays, ClipboardCheck, Lightbulb, MessageSquareText, Users, type LucideIcon } from "lucide-react";
+import { ClipboardList, PlayCircle, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startOfWeek } from "@/lib/operator-data";
-import { seatStats, useOperatorWorkspace } from "@/lib/operator-store";
-import { NotificationRow } from "@/components/operator/NotificationRow";
-import { OLink, useNewPost } from "@/components/operator/nav";
-import { EmptyBox, HealthBadge, PageBody, PageHeader, WorkspaceLogo } from "@/components/operator/ui";
+import { useGo } from "@/components/operator/nav";
+import { PageBody, PageHeader, WorkspaceLogo } from "@/components/operator/ui";
+import { formatTimer, useServiceDesk } from "@/lib/session-store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ops/")({
-  component: OverviewPage,
+  component: ServiceDeskHome,
 });
 
 function greeting() {
@@ -18,142 +16,108 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }
 
-function Kpi({
-  label,
-  value,
-  icon: Icon,
-  to,
-  search,
-  tone,
-}: {
-  label: string;
-  value: number;
-  icon: LucideIcon;
-  to: string;
-  search?: Record<string, string>;
-  tone?: "alert";
-}) {
-  return (
-    <OLink
-      to={to}
-      search={search}
-      className="rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/40"
-    >
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</span>
-        <Icon className="size-4 text-muted-foreground" />
-      </div>
-      <p className={cn("mt-3 text-3xl font-semibold", tone === "alert" && value > 0 && "text-destructive")}>{value}</p>
-    </OLink>
+function ServiceDeskHome() {
+  const desk = useServiceDesk();
+  const go = useGo();
+
+  const activeWorkspace = desk.activeSession ? desk.workspaces.find((w) => w.id === desk.activeSession!.workspaceId) : null;
+  const elapsed = desk.activeSession ? desk.now.getTime() - new Date(desk.activeSession.startedAt).getTime() : 0;
+
+  const ranked = useMemo(
+    () =>
+      [...desk.workspaces].sort((a, b) => {
+        const diff = desk.openTaskCount(b.id) - desk.openTaskCount(a.id);
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      }),
+    [desk],
   );
-}
 
-function OverviewPage() {
-  const ws = useOperatorWorkspace();
-  const openNewPost = useNewPost();
-  const weekStart = startOfWeek(ws.now);
-
-  const stats = useMemo(
-    () => new Map(ws.seats.map((s) => [s.id, seatStats(s, ws.posts, weekStart, ws.now)])),
-    [ws.seats, ws.posts, weekStart, ws.now],
-  );
-  const noPosts = ws.seats.filter((s) => (stats.get(s.id)?.scheduledThisWeek ?? 0) === 0 && s.cadence > 0);
-  const openFeedback = ws.posts.filter((p) => p.status === "changes").length;
-  const newIdeas = ws.posts.filter((p) => p.status === "writing" && p.origin === "idea" && !p.operator).length;
-  const awaiting = ws.posts.filter((p) => p.status === "awaiting").length;
-
-  const attention = ws.notifications.filter((n) => !n.read || n.priority === 1).slice(0, 8);
-  const health = [...ws.seats]
-    .map((s) => ({ s, st: stats.get(s.id)! }))
-    .sort((a, b) => ["risk", "attention", "ok"].indexOf(a.st.health) - ["risk", "attention", "ok"].indexOf(b.st.health))
-    .slice(0, 6);
+  const attend = (workspaceId: string) => {
+    if (!desk.activeSession || desk.activeSession.workspaceId !== workspaceId) {
+      desk.startSession(workspaceId);
+    }
+    go("/ops/session/$workspaceId", { params: { workspaceId } });
+  };
 
   return (
     <>
       <PageHeader
-        title={`${greeting()}, ${ws.operator.name.split(" ")[0]}`}
-        subtitle="Here's what needs your attention across your clients today."
+        title={`${greeting()}, ${desk.operator.name.split(" ")[0]}`}
+        subtitle="Attend one client at a time — work their task list while the clock runs."
+        hideNewPost
+        actions={
+          <Button variant="outline" size="sm" onClick={() => go("/ops/reports")}>
+            <Timer className="size-3.5" />
+            Weekly report
+          </Button>
+        }
       />
       <PageBody>
-        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-5">
-          <Kpi label="Clients" value={ws.seats.length} icon={Users} to="/ops/clients" />
-          <Kpi label="Open feedback" value={openFeedback} icon={MessageSquareText} to="/ops/inbox" search={{ type: "feedback" }} tone="alert" />
-          <Kpi label="New ideas" value={newIdeas} icon={Lightbulb} to="/ops/inbox" search={{ type: "ideas" }} />
-          <Kpi label="Awaiting approval" value={awaiting} icon={ClipboardCheck} to="/ops/posts" />
-          <Kpi label="No posts this week" value={noPosts.length} icon={CalendarDays} to="/ops/calendar" tone="alert" />
-        </div>
-
-        <div className="grid items-start gap-6 lg:grid-cols-2">
-          <section className="overflow-hidden rounded-2xl border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
-              <h2 className="text-sm font-semibold">Needs your attention</h2>
-              <OLink to="/ops/inbox" className="text-xs font-medium text-primary hover:underline light:text-[#0B6A8F]">
-                Open inbox
-              </OLink>
+        {activeWorkspace && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/40 bg-primary/10 p-4">
+            <div className="flex items-center gap-3">
+              <WorkspaceLogo workspace={activeWorkspace} className="size-9" />
+              <div className="leading-tight">
+                <p className="text-sm font-semibold">Currently attending {activeWorkspace.name}</p>
+                <p className="text-xs text-muted-foreground">Started at {new Date(desk.activeSession!.startedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</p>
+              </div>
             </div>
-            {attention.length === 0 ? (
-              <div className="p-4">
-                <EmptyBox>You're all caught up. Nothing needs your attention right now.</EmptyBox>
-              </div>
-            ) : (
-              <ul>
-                {attention.map((n) => (
-                  <NotificationRow key={n.key} n={n} seat={ws.getSeat(n.seatId)} onRead={(k) => ws.markRead([k])} />
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <div className="space-y-6">
-            <section className="rounded-2xl border border-border bg-card p-4">
-              <h2 className="mb-3 text-sm font-semibold">Clients without post this week</h2>
-              {noPosts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Every seat has content scheduled.</p>
-              ) : (
-                <ul className="space-y-2.5">
-                  {noPosts.map((s) => (
-                    <li key={s.id} className="flex items-center gap-2.5">
-                      <WorkspaceLogo workspace={s.workspace} className="size-7" />
-                      <span className="min-w-0 flex-1 leading-tight">
-                        <span className="block truncate text-sm font-medium">{s.name}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{s.workspace.name}</span>
-                      </span>
-                      <Button variant="outline" size="sm" onClick={() => openNewPost({ seatId: s.id })}>
-                        Create post
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="overflow-hidden rounded-2xl border border-border bg-card">
-              <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
-                <h2 className="text-sm font-semibold">Client Health</h2>
-                <OLink to="/ops/clients" className="text-xs font-medium text-primary hover:underline light:text-[#0B6A8F]">
-                  All clients
-                </OLink>
-              </div>
-              <ul>
-                {health.map(({ s, st }) => (
-                  <li key={s.id} className="flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0">
-                    <WorkspaceLogo workspace={s.workspace} />
-                    <OLink
-                      to="/ops/clients/$clientId"
-                      params={{ clientId: s.id }}
-                      className="min-w-0 flex-1 leading-tight hover:underline"
-                    >
-                      <span className="block truncate text-sm font-medium">{s.name}</span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {s.workspace.name} · {st.healthReason}
-                      </span>
-                    </OLink>
-                    <HealthBadge health={st.health} />
-                  </li>
-                ))}
-              </ul>
-            </section>
+            <div className="flex items-center gap-3">
+              <span className="rounded-lg bg-background/60 px-3 py-1.5 font-mono text-lg font-semibold tabular-nums">
+                {formatTimer(elapsed)}
+              </span>
+              <Button size="sm" className="text-white" onClick={() => go("/ops/session/$workspaceId", { params: { workspaceId: activeWorkspace.id } })}>
+                Open session
+              </Button>
+            </div>
           </div>
+        )}
+
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">Your clients</h2>
+          <span className="text-xs text-muted-foreground">Ordered by open tasks</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {ranked.map((w) => {
+            const openTasks = desk.openTaskCount(w.id);
+            const isActive = desk.activeSession?.workspaceId === w.id;
+            return (
+              <div
+                key={w.id}
+                className={cn(
+                  "flex flex-col gap-3 rounded-2xl border bg-card p-4",
+                  isActive ? "border-primary/50" : "border-border",
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <WorkspaceLogo workspace={w} className="size-9" />
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <p className="truncate text-sm font-semibold">{w.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{w.plan}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs">
+                  <ClipboardList className="size-3.5 text-muted-foreground" />
+                  {openTasks > 0 ? (
+                    <span className="font-medium text-amber light:text-[#7A5200]">
+                      {openTasks} open {openTasks === 1 ? "task" : "tasks"}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">No pending tasks</span>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant={isActive ? "default" : "outline"}
+                  className={cn("mt-auto", isActive && "text-white")}
+                  onClick={() => attend(w.id)}
+                >
+                  <PlayCircle className="size-3.5" />
+                  {isActive ? "Continue attending" : "Start session"}
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </PageBody>
     </>

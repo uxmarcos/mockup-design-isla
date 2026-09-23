@@ -7,6 +7,7 @@ import {
   FileText,
   Inbox,
   LogOut,
+  Timer,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -54,7 +55,12 @@ export function OperatorShell({ children }: { children: ReactNode }) {
   };
 
   const items: NavItem[] = [
-    { label: "Overview", to: "/ops", icon: HomeIcon, active: path === "/ops" },
+    {
+      label: "Service Desk",
+      to: "/ops",
+      icon: HomeIcon,
+      active: path === "/ops" || path.startsWith("/ops/session"),
+    },
     {
       label: "Inbox",
       to: "/ops/inbox",
@@ -81,6 +87,12 @@ export function OperatorShell({ children }: { children: ReactNode }) {
       to: "/ops/posts",
       icon: lucide(FileText),
       active: path.startsWith("/ops/posts"),
+    },
+    {
+      label: "Reports",
+      to: "/ops/reports",
+      icon: lucide(Timer),
+      active: path === "/ops/reports",
     },
   ];
 
