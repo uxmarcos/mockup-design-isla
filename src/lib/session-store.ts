@@ -119,19 +119,19 @@ function task(workspaceId: string, type: TaskType, title: string, over: Partial<
 
 function seedTasks(): ClientTask[] {
   return [
-    task("nortex", "personal_post", "Write Chris's personal post about this week's learning", { seatId: "nortex-chris" }),
+    task("nortex", "personal_post", "Write a post for Chris", { seatId: "nortex-chris" }),
     task("nortex", "approval_request", "Ask Ana to approve the team-culture draft", { seatId: "nortex-ana" }),
-    task("nortex", "institutional_post", "Write an institutional post for the Nortex page"),
+    task("nortex", "institutional_post", "Write a post for the Nortex page"),
     task("nortex", "monthly_call", "Log this month's content alignment call"),
     task("nortex", "feedback_request", "Ask Chris for feedback on the last published posts", { seatId: "nortex-chris" }),
     task("nortex", "photo_request", "Ask for team photos for the next page post", { done: true, doneAt: hoursAgo(30) }),
 
-    task("lumen", "personal_post", "Write Mariana's personal post about this week's learning", { seatId: "lumen" }),
+    task("lumen", "personal_post", "Write a post for Mariana", { seatId: "lumen" }),
     task("lumen", "approval_request", "Ask Tiago to approve his draft", { seatId: "lumen-tiago" }),
     task("lumen", "feedback_request", "Ask Mariana for feedback on the last published posts", { seatId: "lumen" }),
 
     task("brightpath", "approval_request", "Follow up on Rafael's change request", { seatId: "brightpath" }),
-    task("brightpath", "institutional_post", "Write an institutional post for the Brightpath page"),
+    task("brightpath", "institutional_post", "Write a post for the Brightpath page"),
 
     task("vantage", "monthly_call", "Log this month's content alignment call"),
     task("vantage", "photo_request", "Ask for team photos for the next page post", { seatId: "vantage" }),

@@ -3,17 +3,21 @@ import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   BookOpen,
+  CalendarClock,
   Check,
+  Copy,
   ImagePlus,
   Images,
   LayoutGrid,
   Lightbulb,
   ListChecks,
   MessageSquareText,
+  PenLine,
   Plus,
   Settings2,
   StopCircle,
   Trash2,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +32,7 @@ import {
   formatTimer,
   TASK_TYPE_LABEL,
   useServiceDesk,
+  type ClientTask,
   type TaskType,
 } from "@/lib/session-store";
 import { OLink, useGo, useNewPost } from "@/components/operator/nav";
@@ -77,6 +82,20 @@ const TASK_TYPES: TaskType[] = [
   "photo_request",
   "custom",
 ];
+
+/** Every task guides the operator to the thing it wants done next; custom tasks have no fixed target. */
+const TASK_ACTION: Partial<Record<TaskType, { label: string; icon: LucideIcon }>> = {
+  personal_post: { label: "Write", icon: PenLine },
+  institutional_post: { label: "Write", icon: PenLine },
+  approval_request: { label: "Copy link", icon: Copy },
+  feedback_request: { label: "Copy link", icon: Copy },
+  photo_request: { label: "Open bank", icon: Images },
+  monthly_call: { label: "Open calendar", icon: CalendarClock },
+};
+
+function writePostTitle(seatName: string | undefined, workspaceName: string) {
+  return seatName ? `Write a post for ${seatName}` : `Write a post for the ${workspaceName} page`;
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -146,6 +165,31 @@ function ClientPage() {
     setTaskType("custom");
     setTaskSeat("none");
     setAddingTask(false);
+  };
+
+  const runTaskAction = (t: ClientTask) => {
+    const seat = t.seatId ? seats.find((s) => s.id === t.seatId) : undefined;
+    switch (t.type) {
+      case "personal_post":
+      case "institutional_post":
+        openNewPost({ seatId: seat?.id ?? seats[0]?.id });
+        return;
+      case "approval_request":
+      case "feedback_request": {
+        const link = `https://isla.to/review/${seat?.id ?? workspace.id}-${t.id.slice(-6)}`;
+        void navigator.clipboard.writeText(link);
+        toast.success("Link copied to clipboard");
+        return;
+      }
+      case "photo_request":
+        setTab("images");
+        return;
+      case "monthly_call":
+        go("/ops/calendar");
+        return;
+      default:
+        return;
+    }
   };
 
   const pickImage = async (file: File | undefined) => {
@@ -313,6 +357,7 @@ function ClientPage() {
                   <ul>
                     {[...openTasks, ...doneTasks].map((t) => {
                       const seat = t.seatId ? seats.find((s) => s.id === t.seatId) : undefined;
+                      const action = TASK_ACTION[t.type];
                       return (
                         <li key={t.id} className="group flex items-center gap-3 border-b border-border px-4 py-3 last:border-b-0">
                           <button
@@ -334,6 +379,12 @@ function ClientPage() {
                               {seat && ` · ${seat.name}`}
                             </p>
                           </div>
+                          {action && !t.done && (
+                            <Button variant="outline" size="sm" className="shrink-0" onClick={() => runTaskAction(t)}>
+                              <action.icon className="size-3.5" />
+                              {action.label}
+                            </Button>
+                          )}
                           <button
                             onClick={() => desk.removeTask(t.id)}
                             aria-label="Remove task"
@@ -353,7 +404,17 @@ function ClientPage() {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label className="text-xs">Type</Label>
-                      <Select value={taskType} onValueChange={(v) => setTaskType(v as TaskType)}>
+                      <Select
+                        value={taskType}
+                        onValueChange={(v) => {
+                          const nv = v as TaskType;
+                          setTaskType(nv);
+                          if (nv === "personal_post" || nv === "institutional_post") {
+                            const seat = taskSeat !== "none" ? seats.find((s) => s.id === taskSeat) : undefined;
+                            setTaskTitle(writePostTitle(seat?.name, workspace.name));
+                          }
+                        }}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -369,7 +430,16 @@ function ClientPage() {
                     {seats.length > 0 && (
                       <div className="space-y-1.5">
                         <Label className="text-xs">Seat (optional)</Label>
-                        <Select value={taskSeat} onValueChange={setTaskSeat}>
+                        <Select
+                          value={taskSeat}
+                          onValueChange={(v) => {
+                            setTaskSeat(v);
+                            if (taskType === "personal_post" || taskType === "institutional_post") {
+                              const seat = v !== "none" ? seats.find((s) => s.id === v) : undefined;
+                              setTaskTitle(writePostTitle(seat?.name, workspace.name));
+                            }
+                          }}
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
