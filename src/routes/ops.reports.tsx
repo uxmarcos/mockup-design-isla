@@ -48,8 +48,8 @@ function ReportsPage() {
                   <div className="mb-2 flex items-center gap-3">
                     <WorkspaceLogo workspace={r.workspace} className="size-8" />
                     <OLink
-                      to="/ops/clients/$clientId"
-                      params={{ clientId: r.workspace.id }}
+                      to="/ops/clients/$workspaceId"
+                      params={{ workspaceId: r.workspace.id }}
                       className="min-w-0 flex-1 truncate text-sm font-medium hover:underline"
                     >
                       {r.workspace.name}

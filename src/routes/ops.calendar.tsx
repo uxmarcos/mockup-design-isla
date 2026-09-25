@@ -169,8 +169,8 @@ function CalendarPage() {
                         <div className="flex items-center border-b border-border px-4 py-3 pl-9">
                           <div className="min-w-0 leading-tight">
                             <OLink
-                              to="/ops/clients/$clientId"
-                              params={{ clientId: c.id }}
+                              to="/ops/clients/$workspaceId"
+                              params={{ workspaceId: c.workspace.id }}
                               className="block truncate text-sm font-medium hover:underline"
                             >
                               {c.name}

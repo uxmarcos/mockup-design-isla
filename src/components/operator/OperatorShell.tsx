@@ -8,7 +8,6 @@ import {
   Inbox,
   LogOut,
   Timer,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -56,10 +55,10 @@ export function OperatorShell({ children }: { children: ReactNode }) {
 
   const items: NavItem[] = [
     {
-      label: "Service Desk",
-      to: "/ops",
+      label: "Clients",
+      to: "/ops/clients",
       icon: HomeIcon,
-      active: path === "/ops" || path.startsWith("/ops/session"),
+      active: path.startsWith("/ops/clients"),
     },
     {
       label: "Inbox",
@@ -67,12 +66,6 @@ export function OperatorShell({ children }: { children: ReactNode }) {
       icon: lucide(Inbox),
       badge: ws.counts.unread,
       active: path === "/ops/inbox",
-    },
-    {
-      label: "Clients",
-      to: "/ops/clients",
-      icon: lucide(Users),
-      active: path.startsWith("/ops/clients"),
     },
     {
       label: "Calendar",

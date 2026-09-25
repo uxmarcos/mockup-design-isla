@@ -73,7 +73,14 @@ function useSeatOverrides() {
 }
 
 /** Editable workspace fields — everything else (name, logo, since) stays fixed. */
-export type WorkspaceOverride = { plan?: string; timezone?: string; language?: string; contactEmail?: string };
+export type WorkspaceOverride = {
+  name?: string;
+  logo?: string;
+  plan?: string;
+  timezone?: string;
+  language?: string;
+  contactEmail?: string;
+};
 
 function useWorkspaceOverrides() {
   return useStored<Record<string, WorkspaceOverride>>(WORKSPACE_KEY, {});

@@ -230,6 +230,9 @@
 
 @layer base {
   html, body { background-color: var(--color-background); color: var(--color-foreground); }
+  /* Reserve the scrollbar's space always, so content doesn't shift width when a tall tab
+     panel adds a scrollbar and a short one removes it (e.g. switching tabs on a page). */
+  html { scrollbar-gutter: stable; }
   * { border-color: var(--color-border); }
 
   /* Minimalist scrollbars — track hidden, thin thumb only */

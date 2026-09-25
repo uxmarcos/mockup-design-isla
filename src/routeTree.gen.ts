@@ -37,9 +37,9 @@ import { Route as OpsCalendarRouteImport } from './routes/ops.calendar'
 import { Route as ApiIdeaChatRouteImport } from './routes/api/idea-chat'
 import { Route as OpsPostsIndexRouteImport } from './routes/ops.posts.index'
 import { Route as OpsClientsIndexRouteImport } from './routes/ops.clients.index'
-import { Route as OpsSessionWorkspaceIdRouteImport } from './routes/ops.session.$workspaceId'
 import { Route as OpsPostsPostIdRouteImport } from './routes/ops.posts.$postId'
-import { Route as OpsClientsClientIdRouteImport } from './routes/ops.clients.$clientId'
+import { Route as OpsClientsWorkspaceIdRouteImport } from './routes/ops.clients.$workspaceId'
+import { Route as OpsClientsWorkspaceIdManageRouteImport } from './routes/ops.clients.$workspaceId_.manage'
 
 const TrendingRoute = TrendingRouteImport.update({
   id: '/trending',
@@ -181,21 +181,22 @@ const OpsClientsIndexRoute = OpsClientsIndexRouteImport.update({
   path: '/clients/',
   getParentRoute: () => OpsRoute,
 } as any)
-const OpsSessionWorkspaceIdRoute = OpsSessionWorkspaceIdRouteImport.update({
-  id: '/session/$workspaceId',
-  path: '/session/$workspaceId',
-  getParentRoute: () => OpsRoute,
-} as any)
 const OpsPostsPostIdRoute = OpsPostsPostIdRouteImport.update({
   id: '/posts/$postId',
   path: '/posts/$postId',
   getParentRoute: () => OpsRoute,
 } as any)
-const OpsClientsClientIdRoute = OpsClientsClientIdRouteImport.update({
-  id: '/clients/$clientId',
-  path: '/clients/$clientId',
+const OpsClientsWorkspaceIdRoute = OpsClientsWorkspaceIdRouteImport.update({
+  id: '/clients/$workspaceId',
+  path: '/clients/$workspaceId',
   getParentRoute: () => OpsRoute,
 } as any)
+const OpsClientsWorkspaceIdManageRoute =
+  OpsClientsWorkspaceIdManageRouteImport.update({
+    id: '/clients/$workspaceId_/manage',
+    path: '/clients/$workspaceId/manage',
+    getParentRoute: () => OpsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -224,11 +225,11 @@ export interface FileRoutesByFullPath {
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
   '/ops/': typeof OpsIndexRoute
   '/settings/': typeof SettingsIndexRoute
-  '/ops/clients/$clientId': typeof OpsClientsClientIdRoute
+  '/ops/clients/$workspaceId': typeof OpsClientsWorkspaceIdRoute
   '/ops/posts/$postId': typeof OpsPostsPostIdRoute
-  '/ops/session/$workspaceId': typeof OpsSessionWorkspaceIdRoute
   '/ops/clients/': typeof OpsClientsIndexRoute
   '/ops/posts/': typeof OpsPostsIndexRoute
+  '/ops/clients/$workspaceId/manage': typeof OpsClientsWorkspaceIdManageRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -256,11 +257,11 @@ export interface FileRoutesByTo {
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
   '/ops': typeof OpsIndexRoute
   '/settings': typeof SettingsIndexRoute
-  '/ops/clients/$clientId': typeof OpsClientsClientIdRoute
+  '/ops/clients/$workspaceId': typeof OpsClientsWorkspaceIdRoute
   '/ops/posts/$postId': typeof OpsPostsPostIdRoute
-  '/ops/session/$workspaceId': typeof OpsSessionWorkspaceIdRoute
   '/ops/clients': typeof OpsClientsIndexRoute
   '/ops/posts': typeof OpsPostsIndexRoute
+  '/ops/clients/$workspaceId/manage': typeof OpsClientsWorkspaceIdManageRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -290,11 +291,11 @@ export interface FileRoutesById {
   '/settings/target-audience': typeof SettingsTargetAudienceRoute
   '/ops/': typeof OpsIndexRoute
   '/settings/': typeof SettingsIndexRoute
-  '/ops/clients/$clientId': typeof OpsClientsClientIdRoute
+  '/ops/clients/$workspaceId': typeof OpsClientsWorkspaceIdRoute
   '/ops/posts/$postId': typeof OpsPostsPostIdRoute
-  '/ops/session/$workspaceId': typeof OpsSessionWorkspaceIdRoute
   '/ops/clients/': typeof OpsClientsIndexRoute
   '/ops/posts/': typeof OpsPostsIndexRoute
+  '/ops/clients/$workspaceId_/manage': typeof OpsClientsWorkspaceIdManageRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -325,11 +326,11 @@ export interface FileRouteTypes {
     | '/settings/target-audience'
     | '/ops/'
     | '/settings/'
-    | '/ops/clients/$clientId'
+    | '/ops/clients/$workspaceId'
     | '/ops/posts/$postId'
-    | '/ops/session/$workspaceId'
     | '/ops/clients/'
     | '/ops/posts/'
+    | '/ops/clients/$workspaceId/manage'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -357,11 +358,11 @@ export interface FileRouteTypes {
     | '/settings/target-audience'
     | '/ops'
     | '/settings'
-    | '/ops/clients/$clientId'
+    | '/ops/clients/$workspaceId'
     | '/ops/posts/$postId'
-    | '/ops/session/$workspaceId'
     | '/ops/clients'
     | '/ops/posts'
+    | '/ops/clients/$workspaceId/manage'
   id:
     | '__root__'
     | '/'
@@ -390,11 +391,11 @@ export interface FileRouteTypes {
     | '/settings/target-audience'
     | '/ops/'
     | '/settings/'
-    | '/ops/clients/$clientId'
+    | '/ops/clients/$workspaceId'
     | '/ops/posts/$postId'
-    | '/ops/session/$workspaceId'
     | '/ops/clients/'
     | '/ops/posts/'
+    | '/ops/clients/$workspaceId_/manage'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -620,13 +621,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsClientsIndexRouteImport
       parentRoute: typeof OpsRoute
     }
-    '/ops/session/$workspaceId': {
-      id: '/ops/session/$workspaceId'
-      path: '/session/$workspaceId'
-      fullPath: '/ops/session/$workspaceId'
-      preLoaderRoute: typeof OpsSessionWorkspaceIdRouteImport
-      parentRoute: typeof OpsRoute
-    }
     '/ops/posts/$postId': {
       id: '/ops/posts/$postId'
       path: '/posts/$postId'
@@ -634,11 +628,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsPostsPostIdRouteImport
       parentRoute: typeof OpsRoute
     }
-    '/ops/clients/$clientId': {
-      id: '/ops/clients/$clientId'
-      path: '/clients/$clientId'
-      fullPath: '/ops/clients/$clientId'
-      preLoaderRoute: typeof OpsClientsClientIdRouteImport
+    '/ops/clients/$workspaceId': {
+      id: '/ops/clients/$workspaceId'
+      path: '/clients/$workspaceId'
+      fullPath: '/ops/clients/$workspaceId'
+      preLoaderRoute: typeof OpsClientsWorkspaceIdRouteImport
+      parentRoute: typeof OpsRoute
+    }
+    '/ops/clients/$workspaceId_/manage': {
+      id: '/ops/clients/$workspaceId_/manage'
+      path: '/clients/$workspaceId/manage'
+      fullPath: '/ops/clients/$workspaceId/manage'
+      preLoaderRoute: typeof OpsClientsWorkspaceIdManageRouteImport
       parentRoute: typeof OpsRoute
     }
   }
@@ -649,11 +650,11 @@ interface OpsRouteChildren {
   OpsInboxRoute: typeof OpsInboxRoute
   OpsReportsRoute: typeof OpsReportsRoute
   OpsIndexRoute: typeof OpsIndexRoute
-  OpsClientsClientIdRoute: typeof OpsClientsClientIdRoute
+  OpsClientsWorkspaceIdRoute: typeof OpsClientsWorkspaceIdRoute
   OpsPostsPostIdRoute: typeof OpsPostsPostIdRoute
-  OpsSessionWorkspaceIdRoute: typeof OpsSessionWorkspaceIdRoute
   OpsClientsIndexRoute: typeof OpsClientsIndexRoute
   OpsPostsIndexRoute: typeof OpsPostsIndexRoute
+  OpsClientsWorkspaceIdManageRoute: typeof OpsClientsWorkspaceIdManageRoute
 }
 
 const OpsRouteChildren: OpsRouteChildren = {
@@ -661,11 +662,11 @@ const OpsRouteChildren: OpsRouteChildren = {
   OpsInboxRoute: OpsInboxRoute,
   OpsReportsRoute: OpsReportsRoute,
   OpsIndexRoute: OpsIndexRoute,
-  OpsClientsClientIdRoute: OpsClientsClientIdRoute,
+  OpsClientsWorkspaceIdRoute: OpsClientsWorkspaceIdRoute,
   OpsPostsPostIdRoute: OpsPostsPostIdRoute,
-  OpsSessionWorkspaceIdRoute: OpsSessionWorkspaceIdRoute,
   OpsClientsIndexRoute: OpsClientsIndexRoute,
   OpsPostsIndexRoute: OpsPostsIndexRoute,
+  OpsClientsWorkspaceIdManageRoute: OpsClientsWorkspaceIdManageRoute,
 }
 
 const OpsRouteWithChildren = OpsRoute._addFileChildren(OpsRouteChildren)
